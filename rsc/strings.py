@@ -1,9 +1,12 @@
 not_authed = 'This service may only be used by users that have registered with TidyHQ.\nIf you hold, or have previously held, a membership with us then we were unable to automatically link your Slack and TidyHQ accounts. Please contact a committee member for assistance.\nIf you are not registered with TidyHQ you can sign up <{signup_url}}|here>.'
+not_authed_admin = "<@{user}> tried to upload a file but is not registered with TidyHQ or their Slack account is not linked."
 no_root_directory = "It looks like you don't have a folder in the Member Work directory. Or if you do it's not named `{folder}`. I've created it for you."
 no_butler_directory = "It looks like you haven't used me before. When I save files for you I put them in a folder called `folder` inside your folder in the Member Work directory. I've created it for you."
 duplicate_file = "`{file}` has been ignored as it already exists in your butler folder. You can find it here: `{folder}/{file}`. To replace it please delete/move the existing file and upload the new version."
 file_too_big = "`{file}` is {size}, which is larger than the limit of {max_file_size}. It has been ignored."
 over_folder_limit = "`{file}` has been ignored as your butler folder is full. You may only have {max_folder_files} files in your folder, and the total size of your butler folder may not exceed {max_folder_size}. To remedy this please delete/move some files from the {butler_folder} folder to somewhere else in your member directory."
+over_folder_limit_admin = "<@{user}> tried to upload `{file}` but their butler folder is full. (Either more than {max_folder_files} files or a total size of more than {max_folder_size}.) It has not been saved.)"
 file_saved = "`{file}` has been saved to your butler folder. You can find it here: `{folder}/{file}`"
+file_saved_admin = "`{file}` has been saved to <@{user}>'s butler folder. They can find it here: `{folder}/{file}`"
 virus_found = "There was a problem uploading your file. Please contact a committee member for assistance."
 virus_found_admin = "<@{user}> tried to upload `{file}` which has been flagged as a virus. (`{virus_name}`) It has not been saved."

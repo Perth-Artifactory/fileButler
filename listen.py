@@ -23,6 +23,8 @@ app = App(token=config["slack"]["bot_token"])
 def handle_message_events(body, logger, event):  # type: ignore
     user: str = event["user"]
 
+    notification_ts = None
+
     # Discard message types we don't care about
     if event.get("subtype", "") != "file_share":
         print("Wrong message type, ignoring")
@@ -30,6 +32,7 @@ def handle_message_events(body, logger, event):  # type: ignore
 
     # Check if the user is in our list of authed users
     if user not in authed_slack_users:
+        # Let the user know
         slackUtils.send(
             app=app,
             event=event,
@@ -37,6 +40,17 @@ def handle_message_events(body, logger, event):  # type: ignore
                 signup_url=config["tidyhq"]["signup_url"]
             ),
         )
+        # Let the notification channel know
+        ts = slackUtils.send(
+            app=app,
+            event=event,
+            message=strings.not_authed_admin.format(user=user),
+            channel=config["slack"]["notification_channel"],
+            ts=notification_ts,
+        )
+        if not notification_ts:
+            notification_ts = ts
+
         return
 
     # Check if the Member Work folder exists
@@ -113,6 +127,27 @@ def handle_message_events(body, logger, event):  # type: ignore
                     butler_folder=config["download"]["folder_name"],
                 ),
             )
+
+            # Let the notification channel know
+            ts = slackUtils.send(
+                app=app,
+                event=event,
+                message=strings.over_folder_limit_admin.format(
+                    file=file["name"],
+                    max_folder_size=formatters.file_size(
+                        config["download"]["max_folder_size"]
+                    ),
+                    max_folder_files=config["download"]["max_folder_files"],
+                    butler_folder=config["download"]["folder_name"],
+                    user=user,
+                ),
+                channel=config["slack"]["notification_channel"],
+                ts=notification_ts,
+            )
+
+            if not notification_ts:
+                notification_ts = ts
+
             # Since the folder is full we can stop processing files
             return
 
@@ -127,14 +162,18 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         if virus_check:
             # Explicitly warn the notification channel
-            slackUtils.send(
+            ts = slackUtils.send(
                 app=app,
                 event=event,
                 message=strings.virus_found.format(
                     user=user, file=file["name"], virus_name=virus_check
                 ),
                 channel=config["slack"]["notification_channel"],
+                ts=notification_ts,
             )
+
+            if not notification_ts:
+                notification_ts = ts
 
             # Let the user know there was a problem
             slackUtils.send(
@@ -150,11 +189,26 @@ def handle_message_events(body, logger, event):  # type: ignore
         with open(f'{folder}/{file["name"]}', "wb") as f:
             f.write(file_data.content)
 
+        # Let the user know the file was saved
         slackUtils.send(
             app=app,
             event=event,
             message=strings.file_saved.format(file=file["name"], folder=folder),
         )
+
+        # Send a message to the notification channel
+        ts = slackUtils.send(
+            app=app,
+            event=event,
+            message=strings.file_saved.format(
+                file=file["name"], folder=folder, user=user
+            ),
+            channel=config["slack"]["notification_channel"],
+            ts=notification_ts,
+        )
+
+        if not notification_ts:
+            notification_ts = ts
 
 
 # Get all linked users from TidyHQ
