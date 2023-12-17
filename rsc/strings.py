@@ -1,4 +1,5 @@
 not_authed = "This service may only be used by users that have registered with TidyHQ.\nIf you hold, or have previously held, a membership with us then we were unable to automatically link your Slack and TidyHQ accounts. Please contact a committee member for assistance.\nIf you are not registered with TidyHQ you can sign up <{signup_url}|here>."
+dm = "Hi there! Click on Home to find out how I work or send me a file to save."
 not_authed_admin = "<@{user}> tried to upload a file but is not registered with TidyHQ or their Slack account is not linked."
 no_root_directory = "It looks like you don't have a folder in the Member Work directory. Or if you do it's not named `{folder}`. I've created it for you."
 no_butler_directory = "It looks like you haven't used me before. When I save files for you I put them in a folder called `folder` inside your folder in the Member Work directory. I've created it for you."
