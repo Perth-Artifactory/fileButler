@@ -34,6 +34,9 @@ def folder_name(
 
     # Get the folder name from the contact object
     folder_name: str = f'{contact.get("first_name","")} {contact.get("last_name","")}'
+    
+    # Remove any characters that aren't allowed in a folder name
+    folder_name = "".join(x for x in folder_name if x.isalnum() or x ==" ")
     return folder_name
 
 
