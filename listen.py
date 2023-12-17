@@ -200,7 +200,7 @@ def handle_message_events(body, logger, event):  # type: ignore
         ts = slackUtils.send(
             app=app,
             event=event,
-            message=strings.file_saved.format(
+            message=strings.file_saved_admin.format(
                 file=file["name"], folder=folder, user=user
             ),
             channel=config["slack"]["notification_channel"],

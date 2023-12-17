@@ -2,6 +2,8 @@ def send(event, message: "str", app=None, channel=None, ts=None):
     if not app:
         raise Exception("Global Slack client not initialised")
 
+    event = dict(event)
+
     # Inject ts
     if ts:
         event["ts"] = ts
