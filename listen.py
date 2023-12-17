@@ -117,42 +117,44 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         # Check if the folder is full
         if not fileOperators.check_folder_eligibility(folder_name=formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts), config=config):  # type: ignore
-            slackUtils.send(
-                app=app,
-                event=event,
-                message=strings.over_folder_limit.format(
-                    file=filename,
-                    max_folder_size=formatters.file_size(
-                        config["download"]["max_folder_size"]
+            # Check if the user is in the unlimited group
+            if not slackUtils.check_unlimited(app=app, user=user, config=config):
+                slackUtils.send(
+                    app=app,
+                    event=event,
+                    message=strings.over_folder_limit.format(
+                        file=filename,
+                        max_folder_size=formatters.file_size(
+                            config["download"]["max_folder_size"]
+                        ),
+                        max_folder_files=config["download"]["max_folder_files"],
+                        butler_folder=config["download"]["folder_name"],
                     ),
-                    max_folder_files=config["download"]["max_folder_files"],
-                    butler_folder=config["download"]["folder_name"],
-                ),
-            )
+                )
 
-            # Let the notification channel know
-            ts = slackUtils.send(
-                app=app,
-                event=event,
-                message=strings.over_folder_limit_admin.format(
-                    file=filename,
-                    max_folder_size=formatters.file_size(
-                        config["download"]["max_folder_size"]
+                # Let the notification channel know
+                ts = slackUtils.send(
+                    app=app,
+                    event=event,
+                    message=strings.over_folder_limit_admin.format(
+                        file=filename,
+                        max_folder_size=formatters.file_size(
+                            config["download"]["max_folder_size"]
+                        ),
+                        max_folder_files=config["download"]["max_folder_files"],
+                        butler_folder=config["download"]["folder_name"],
+                        user=user,
                     ),
-                    max_folder_files=config["download"]["max_folder_files"],
-                    butler_folder=config["download"]["folder_name"],
-                    user=user,
-                ),
-                channel=config["slack"]["notification_channel"],
-                ts=notification_ts,
-                broadcast=True,
-            )
+                    channel=config["slack"]["notification_channel"],
+                    ts=notification_ts,
+                    broadcast=True,
+                )
 
-            if not notification_ts:
-                notification_ts = ts
+                if not notification_ts:
+                    notification_ts = ts
 
-            # Since the folder is full we can stop processing files
-            return
+                # Since the folder is full we can stop processing files
+                return
 
         # Download the file
         file_data = requests.get(
