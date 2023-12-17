@@ -21,14 +21,14 @@ app = App(token=config["slack"]["bot_token"])
 
 @app.event("message")
 def handle_message_events(body, logger, event):  # type: ignore
-    user: str = event["user"]
-
-    notification_ts = None
-
     # Discard message types we don't care about
     if event.get("subtype", "") != "file_share":
         print("Wrong message type, ignoring")
         return
+
+    user: str = event["user"]
+
+    notification_ts = None
 
     # Check if the user is in our list of authed users
     if user not in authed_slack_users:
@@ -88,11 +88,18 @@ def handle_message_events(body, logger, event):  # type: ignore
     if not os.path.exists(folder):
         os.makedirs(folder)
 
+    # Check if the user is a current member and set the quota multiplier
+    if user in current_members:
+        multiplier = config["download"]["member_multiplier"]
+        print(f"{user} is a current member, multiplier set to {multiplier}")
+    else:
+        multiplier = 1
+
     for file in event["files"]:
         filename = formatters.clean_filename(file["name"])
-        
+
         # Check if the file is a duplicate
-        if os.path.exists(f'{folder}/{filename}'):
+        if os.path.exists(f"{folder}/{filename}"):
             slackUtils.send(
                 app=app,
                 event=event,
@@ -101,7 +108,9 @@ def handle_message_events(body, logger, event):  # type: ignore
             continue
 
         # Check if the file is too large
-        if not validators.check_size(file_object=file, config=config):
+        if not validators.check_size(
+            file_object=file, config=config, multiplier=multiplier
+        ):
             slackUtils.send(
                 app=app,
                 event=event,
@@ -116,7 +125,7 @@ def handle_message_events(body, logger, event):  # type: ignore
             continue
 
         # Check if the folder is full
-        if not fileOperators.check_folder_eligibility(folder_name=formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts), config=config):  # type: ignore
+        if not fileOperators.check_folder_eligibility(contacts=contacts, contact=authed_slack_users[user], config=config, user=user):  # type: ignore
             # Check if the user is in the unlimited group
             if not slackUtils.check_unlimited(app=app, user=user, config=config):
                 slackUtils.send(
@@ -125,9 +134,10 @@ def handle_message_events(body, logger, event):  # type: ignore
                     message=strings.over_folder_limit.format(
                         file=filename,
                         max_folder_size=formatters.file_size(
-                            config["download"]["max_folder_size"]
+                            config["download"]["max_folder_size"] * multiplier
                         ),
-                        max_folder_files=config["download"]["max_folder_files"],
+                        max_folder_files=config["download"]["max_folder_files"]
+                        * multiplier,
                         butler_folder=config["download"]["folder_name"],
                     ),
                 )
@@ -139,9 +149,10 @@ def handle_message_events(body, logger, event):  # type: ignore
                     message=strings.over_folder_limit_admin.format(
                         file=filename,
                         max_folder_size=formatters.file_size(
-                            config["download"]["max_folder_size"]
+                            config["download"]["max_folder_size"] * multiplier
                         ),
-                        max_folder_files=config["download"]["max_folder_files"],
+                        max_folder_files=config["download"]["max_folder_files"]
+                        * multiplier,
                         butler_folder=config["download"]["folder_name"],
                         user=user,
                     ),
@@ -192,7 +203,7 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         # Save the file
 
-        with open(f'{folder}/{filename}', "wb") as f:
+        with open(f"{folder}/{filename}", "wb") as f:
             f.write(file_data.content)
 
         # Let the user know the file was saved
@@ -229,10 +240,13 @@ contacts: list[dict[str, Any]] = requests.get(
 print(f"Received {len(contacts)} contacts")
 
 authed_slack_users = {}
+current_members = {}
 for contact in contacts:
     for field in contact["custom_fields"]:
         if field["id"] == config["tidyhq"]["ids"]["slack"]:
             authed_slack_users[field["value"]] = contact
+            if contact["status"] != "expired":
+                current_members[field["value"]] = contact
 
 print(f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts")
 

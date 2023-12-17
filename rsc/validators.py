@@ -5,6 +5,7 @@ def check_size(
     id: str | Literal[None] = None,
     file_object: dict[Any, Any] | Literal[None] = None,
     config=None,
+    multiplier: int = 1,
 ) -> int | bool:
     if not config:
         raise Exception("Global variable config not created")
@@ -21,7 +22,7 @@ def check_size(
         file: dict = file_object
 
     size: int = file["size"]  # type: ignore
-    if size > config["download"]["max_file_size"]:
+    if size > config["download"]["max_file_size"] * multiplier:
         return False
     else:
         return int(size)
