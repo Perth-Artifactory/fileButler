@@ -19,6 +19,14 @@ with open("config.json") as config_file:
 app = App(token=config["slack"]["bot_token"])
 
 
+# Update the app home
+@app.event("app_home_opened")  # type: ignore
+def app_home_opened(event: dict[str, Any], client: WebClient, ack) -> None:
+    ack()
+    print("App home opened")
+    slackUtils.updateHome(user=event["user"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts)  # type: ignore
+
+
 @app.event("message")
 def handle_message_events(body, logger, event):  # type: ignore
     # Discard message types we don't care about
@@ -226,6 +234,35 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         if not notification_ts:
             notification_ts = ts
+
+
+@app.action("purge_folder")
+def delete_folder(ack, body, logger):
+    ack()
+    user = body["user"]["id"]
+
+    # Construct folder path
+    folder = f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}/{config["download"]["folder_name"]}'
+
+    # Delete the folder contents
+    if fileOperators.delete_folder_contents(folder=folder):
+        slackUtils.send(
+            app=app,
+            event=body,
+            message=strings.delete_success,
+            dm=True
+        )
+        
+        # Send a message to the notification channel
+        slackUtils.send(
+            app=app,
+            event=body,
+            message=strings.delete_success_admin.format(user=user),
+            channel=config["slack"]["notification_channel"],
+        )
+        
+        # Update the app home
+        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts)
 
 
 # Get all linked users from TidyHQ

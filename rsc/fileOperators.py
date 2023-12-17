@@ -2,7 +2,7 @@ import os
 from . import formatters
 from typing import Literal
 
-def check_folder_eligibility(contacts, contact: dict, config=None, current_members: dict|Literal[None]=None, user: str="") -> bool:
+def check_folder_eligibility(contacts, contact: dict, config=None, current_members: dict|Literal[None]=None,authed_slack_users: dict|Literal[None]=None, user: str="") -> bool:
     
     if not config:
         raise Exception("Must provide config")
@@ -30,4 +30,24 @@ def check_folder_eligibility(contacts, contact: dict, config=None, current_membe
         if folder_size >= config["download"]["max_folder_size"] * multiplier:
             return False
     
+    return True
+
+def get_current_files(folder):
+    files = []
+    for file in os.listdir(folder):
+        # get the size of each file
+        size = os.path.getsize(f'{folder}/{file}')
+        
+        # get the creation time of each file
+        ctime = os.path.getctime(f'{folder}/{file}')
+        
+        files.append((file, size, ctime))
+    return files
+
+def delete_folder_contents(folder):
+    try:
+        for file in os.listdir(folder):
+            os.remove(f'{folder}/{file}')
+    except:
+        return False
     return True

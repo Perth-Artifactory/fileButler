@@ -1,4 +1,4 @@
-not_authed = 'This service may only be used by users that have registered with TidyHQ.\nIf you hold, or have previously held, a membership with us then we were unable to automatically link your Slack and TidyHQ accounts. Please contact a committee member for assistance.\nIf you are not registered with TidyHQ you can sign up <{signup_url}}|here>.'
+not_authed = "This service may only be used by users that have registered with TidyHQ.\nIf you hold, or have previously held, a membership with us then we were unable to automatically link your Slack and TidyHQ accounts. Please contact a committee member for assistance.\nIf you are not registered with TidyHQ you can sign up <{signup_url}}|here>."
 not_authed_admin = "<@{user}> tried to upload a file but is not registered with TidyHQ or their Slack account is not linked."
 no_root_directory = "It looks like you don't have a folder in the Member Work directory. Or if you do it's not named `{folder}`. I've created it for you."
 no_butler_directory = "It looks like you haven't used me before. When I save files for you I put them in a folder called `folder` inside your folder in the Member Work directory. I've created it for you."
@@ -10,3 +10,12 @@ file_saved = "`{file}` has been saved to your butler folder. You can find it her
 file_saved_admin = "`{file}` has been saved to <@{user}>'s butler folder. They can find it here: `{folder}/{file}`"
 virus_found = "There was a problem uploading your file. Please contact a committee member for assistance."
 virus_found_admin = "<@{user}> tried to upload `{file}` which has been flagged as a virus. (`{virus_name}`) It has not been saved."
+
+explainer = "File Butler is a service that allows you to upload files to your Member Work folder from Slack. Files you upload here will be accessible from any workstation in the space. To upload files send them to me as a message and I'll let you know when they're ready."
+quota = "As a {class} there are certain limitations on the number and size of files that you can submit via File Butler:\nIndividual file size: {max_file_size}\nButler folder size: {max_folder_size}\nButler folder items: {max_folder_files}"
+quota_context = "These limits are specifically on your Butler folder, there's no restriction on the files stored in your Member Work folder."
+file_item = "• {file} ({size}) - <!date^{epoch}^Uploaded {{date_short_pretty}} at {{time}}|Uploaded {date_str}>"
+reset = "If you need to reset your Butler folder you can do so here. This will delete all files in your Butler folder."
+reset_button = "Reset Folder"
+delete_success = "Your Butler folder has been reset."
+delete_success_admin = "<@{user}> has reset their Butler folder."
