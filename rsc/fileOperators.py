@@ -2,18 +2,19 @@ import os
 from . import formatters
 from typing import Literal
 
-def check_folder_eligibility(contacts, contact: dict, config=None, current_members: dict|Literal[None]=None,authed_slack_users: dict|Literal[None]=None, user: str="") -> bool:
+def check_folder_eligibility(contacts, contact: dict, config=None, current_members: dict|Literal[None]=None,authed_slack_users: dict|Literal[None]=None, user: str="", multiplier=0) -> bool:
     
     if not config:
         raise Exception("Must provide config")
     
     if not current_members:
         current_members = {}
-        
-    multiplier = 1
     
-    if user in current_members:
-        multiplier = config["download"]["member_multiplier"]
+    if multiplier == 0:
+        multiplier = 1
+    
+        if user in current_members:
+            multiplier = config["download"]["member_multiplier"]
     
     folder_name = formatters.folder_name(contact_object=contact, config=config, contacts=contacts)
     
