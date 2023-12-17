@@ -286,8 +286,6 @@ for contact in contacts:
             if contact["status"] != "expired":
                 current_members[field["value"]] = contact
 
-#authed_slack_users.pop("U01T5AYM69Y")
-
 print(f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts")
 
 # Get our user ID
