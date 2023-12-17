@@ -58,4 +58,13 @@ current_file_delete = [
         },
     }
 ]
+not_authed = [
+    {"type": "section", "text": {"type": "mrkdwn", "text": strings.not_authed}}
+]
+folder_location = [
+    {
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": strings.folder_location},
+    }
+]
 text = [{"type": "section", "text": {"type": "mrkdwn", "text": ""}}]

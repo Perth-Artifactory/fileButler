@@ -23,8 +23,7 @@ app = App(token=config["slack"]["bot_token"])
 @app.event("app_home_opened")  # type: ignore
 def app_home_opened(event: dict[str, Any], client: WebClient, ack) -> None:
     ack()
-    print("App home opened")
-    slackUtils.updateHome(user=event["user"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts)  # type: ignore
+    slackUtils.updateHome(user=event["user"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
 
 
 @app.event("message")
@@ -97,9 +96,10 @@ def handle_message_events(body, logger, event):  # type: ignore
         os.makedirs(folder)
 
     # Check if the user is a current member and set the quota multiplier
-    if user in current_members:
+    if slackUtils.check_unlimited(app=app, user=user, config=config):
+        multiplier = 1000
+    elif user in current_members:
         multiplier = config["download"]["member_multiplier"]
-        print(f"{user} is a current member, multiplier set to {multiplier}")
     else:
         multiplier = 1
 
@@ -133,47 +133,45 @@ def handle_message_events(body, logger, event):  # type: ignore
             continue
 
         # Check if the folder is full
-        if not fileOperators.check_folder_eligibility(contacts=contacts, contact=authed_slack_users[user], config=config, user=user):  # type: ignore
-            # Check if the user is in the unlimited group
-            if not slackUtils.check_unlimited(app=app, user=user, config=config):
-                slackUtils.send(
-                    app=app,
-                    event=event,
-                    message=strings.over_folder_limit.format(
-                        file=filename,
-                        max_folder_size=formatters.file_size(
-                            config["download"]["max_folder_size"] * multiplier
-                        ),
-                        max_folder_files=config["download"]["max_folder_files"]
-                        * multiplier,
-                        butler_folder=config["download"]["folder_name"],
+        if not fileOperators.check_folder_eligibility(contacts=contacts, contact=authed_slack_users[user], config=config, user=user, multiplier=multiplier):  # type: ignore
+            slackUtils.send(
+                app=app,
+                event=event,
+                message=strings.over_folder_limit.format(
+                    file=filename,
+                    max_folder_size=formatters.file_size(
+                        config["download"]["max_folder_size"] * multiplier
                     ),
-                )
+                    max_folder_files=config["download"]["max_folder_files"]
+                    * multiplier,
+                    butler_folder=config["download"]["folder_name"],
+                ),
+            )
 
-                # Let the notification channel know
-                ts = slackUtils.send(
-                    app=app,
-                    event=event,
-                    message=strings.over_folder_limit_admin.format(
-                        file=filename,
-                        max_folder_size=formatters.file_size(
-                            config["download"]["max_folder_size"] * multiplier
-                        ),
-                        max_folder_files=config["download"]["max_folder_files"]
-                        * multiplier,
-                        butler_folder=config["download"]["folder_name"],
-                        user=user,
+            # Let the notification channel know
+            ts = slackUtils.send(
+                app=app,
+                event=event,
+                message=strings.over_folder_limit_admin.format(
+                    file=filename,
+                    max_folder_size=formatters.file_size(
+                        config["download"]["max_folder_size"] * multiplier
                     ),
-                    channel=config["slack"]["notification_channel"],
-                    ts=notification_ts,
-                    broadcast=True,
-                )
+                    max_folder_files=config["download"]["max_folder_files"]
+                    * multiplier,
+                    butler_folder=config["download"]["folder_name"],
+                    user=user,
+                ),
+                channel=config["slack"]["notification_channel"],
+                ts=notification_ts,
+                broadcast=True,
+            )
 
-                if not notification_ts:
-                    notification_ts = ts
+            if not notification_ts:
+                notification_ts = ts
 
-                # Since the folder is full we can stop processing files
-                return
+            # Since the folder is full we can stop processing files
+            return
 
         # Download the file
         file_data = requests.get(
@@ -231,6 +229,9 @@ def handle_message_events(body, logger, event):  # type: ignore
             channel=config["slack"]["notification_channel"],
             ts=notification_ts,
         )
+        
+        # Update the app home
+        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)
 
         if not notification_ts:
             notification_ts = ts
@@ -262,7 +263,7 @@ def delete_folder(ack, body, logger):
         )
         
         # Update the app home
-        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts)
+        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)
 
 
 # Get all linked users from TidyHQ
@@ -284,6 +285,8 @@ for contact in contacts:
             authed_slack_users[field["value"]] = contact
             if contact["status"] != "expired":
                 current_members[field["value"]] = contact
+
+#authed_slack_users.pop("U01T5AYM69Y")
 
 print(f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts")
 

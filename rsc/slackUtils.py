@@ -49,8 +49,14 @@ def send(
     return response.data["ts"]
 
 
-def check_unlimited(app, user, config):
-    r = app.client.usergroups_list(include_users=True)
+def check_unlimited(user, config, app=None, client=None):
+    if app:
+        r = app.client.usergroups_list(include_users=True)
+    elif client:
+        r = client.usergroups_list(include_users=True)
+    else:
+        raise Exception("Must provide either app or client")
+    
     groups: list[dict[str, Any]] = r.data["usergroups"]
     for group in groups:
         if group["id"] in config["slack"]["unlimited_groups"]:
@@ -60,7 +66,7 @@ def check_unlimited(app, user, config):
 
 
 def updateHome(
-    user: str, client: WebClient, config, authed_slack_users, contacts
+    user: str, client: WebClient, config, authed_slack_users, contacts, current_members
 ) -> None:
     home_view = {
         "type": "home",
@@ -69,6 +75,8 @@ def updateHome(
             config=config,
             authed_slack_users=authed_slack_users,
             contacts=contacts,
+            client=client,
+            current_members=current_members
         ),
     }
     client.views_publish(user_id=user, view=home_view)
