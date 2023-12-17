@@ -1,7 +1,7 @@
 from typing import Any, Literal
 import requests
 
-def get_folder_name(id: str|Literal[None]=None, contact_object: dict[Any,Any]|Literal[None]=None) -> str|bool:
+def folder_name(id: str|Literal[None]=None, contact_object: dict[Any,Any]|Literal[None]=None) -> str|bool:
     if not config: # type: ignore
         config = {}
         raise Exception("Global variable config not created")
@@ -34,3 +34,10 @@ def get_folder_name(id: str|Literal[None]=None, contact_object: dict[Any,Any]|Li
     # Get the folder name from the contact object
     folder_name: str = f'{contact.get("first_name","")} {contact.get("last_name","")}'
     return folder_name
+
+def file_size(num: int|float) -> str:
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+        if num < 1024.0:
+            return f'{num:.1f}{unit}'
+        num /= 1024.0
+    return f'{num:.1f}B'
