@@ -28,6 +28,17 @@ def app_home_opened(event: dict[str, Any], client: WebClient, ack) -> None:
 
 @app.event("message")
 def handle_message_events(body, logger, event):  # type: ignore
+    if event["type"] == "message" and not event.get("subtype", None):
+        # Strip ts from the event so the message isn't sent in a thread
+        event.pop("ts")
+        slackUtils.send(
+            app=app,
+            event=event,
+            message=strings.dm,
+            dm=True
+        )
+        return
+    
     # Discard message types we don't care about
     if event.get("subtype", "") != "file_share":
         print("Wrong message type, ignoring")
