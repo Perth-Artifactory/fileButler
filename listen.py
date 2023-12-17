@@ -89,12 +89,14 @@ def handle_message_events(body, logger, event):  # type: ignore
         os.makedirs(folder)
 
     for file in event["files"]:
+        filename = formatters.clean_filename(file["name"])
+        
         # Check if the file is a duplicate
-        if os.path.exists(f'{folder}/{file["name"]}'):
+        if os.path.exists(f'{folder}/{filename}'):
             slackUtils.send(
                 app=app,
                 event=event,
-                message=strings.duplicate_file.format(folder=folder, file=file["name"]),
+                message=strings.duplicate_file.format(folder=folder, file=filename),
             )
             continue
 
@@ -104,7 +106,7 @@ def handle_message_events(body, logger, event):  # type: ignore
                 app=app,
                 event=event,
                 message=strings.file_too_big.format(
-                    file=file["name"],
+                    file=filename,
                     size=formatters.file_size(file["size"]),
                     max_file_size=formatters.file_size(
                         config["download"]["max_file_size"]
@@ -119,7 +121,7 @@ def handle_message_events(body, logger, event):  # type: ignore
                 app=app,
                 event=event,
                 message=strings.over_folder_limit.format(
-                    file=file["name"],
+                    file=filename,
                     max_folder_size=formatters.file_size(
                         config["download"]["max_folder_size"]
                     ),
@@ -133,7 +135,7 @@ def handle_message_events(body, logger, event):  # type: ignore
                 app=app,
                 event=event,
                 message=strings.over_folder_limit_admin.format(
-                    file=file["name"],
+                    file=filename,
                     max_folder_size=formatters.file_size(
                         config["download"]["max_folder_size"]
                     ),
@@ -167,7 +169,7 @@ def handle_message_events(body, logger, event):  # type: ignore
                 app=app,
                 event=event,
                 message=strings.virus_found.format(
-                    user=user, file=file["name"], virus_name=virus_check
+                    user=user, file=filename, virus_name=virus_check
                 ),
                 channel=config["slack"]["notification_channel"],
                 ts=notification_ts,
@@ -188,14 +190,14 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         # Save the file
 
-        with open(f'{folder}/{file["name"]}', "wb") as f:
+        with open(f'{folder}/{filename}', "wb") as f:
             f.write(file_data.content)
 
         # Let the user know the file was saved
         slackUtils.send(
             app=app,
             event=event,
-            message=strings.file_saved.format(file=file["name"], folder=folder),
+            message=strings.file_saved.format(file=filename, folder=folder),
         )
 
         # Send a message to the notification channel
@@ -203,7 +205,7 @@ def handle_message_events(body, logger, event):  # type: ignore
             app=app,
             event=event,
             message=strings.file_saved_admin.format(
-                file=file["name"], folder=folder, user=user
+                file=filename, folder=folder, user=user
             ),
             channel=config["slack"]["notification_channel"],
             ts=notification_ts,

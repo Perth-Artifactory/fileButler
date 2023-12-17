@@ -39,6 +39,12 @@ def folder_name(
     folder_name = "".join(x for x in folder_name if x.isalnum() or x ==" ")
     return folder_name
 
+def clean_filename(filename: str) -> str:
+    # Remove any characters that aren't allowed in a filename
+    filename = filename.replace("..", ".")
+    filename = "".join(x for x in filename if x.isalnum() or x in " .-_")
+    return filename
+
 
 def file_size(num: int | float) -> str:
     for unit in ["B", "KB", "MB", "GB", "TB", "PB"]:
