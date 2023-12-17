@@ -31,6 +31,7 @@ def handle_message_events(body, logger, event):  # type: ignore
     # Check if the user is in our list of authed users
     if user not in authed_slack_users:
         slackUtils.send(
+            app=app,
             event=event,
             message=strings.not_authed.format(
                 signup_url=config["tidyhq"]["signup_url"]
@@ -40,20 +41,28 @@ def handle_message_events(body, logger, event):  # type: ignore
 
     # Check if the Member Work folder exists
     if not os.path.exists(
-        f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user])}'
+        f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}'
     ):
         slackUtils.send(
+            app=app,
             event=event,
             message=strings.no_root_directory.format(
-                folder={formatters.folder_name(contact_object=authed_slack_users[user])}
+                folder={
+                    formatters.folder_name(
+                        contact_object=authed_slack_users[user],
+                        config=config,
+                        contacts=contacts,
+                    )
+                }
             ),
         )
 
     # Check if the butler folder exists
     if not os.path.exists(
-        f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user])}/{config["download"]["folder_name"]}'
+        f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}/{config["download"]["folder_name"]}'
     ):
         slackUtils.send(
+            app=app,
             event=event,
             message=strings.no_butler_directory.format(
                 folder=config["download"]["folder_name"]
@@ -61,7 +70,7 @@ def handle_message_events(body, logger, event):  # type: ignore
         )
 
     # Create the folder if it doesn't exist
-    folder = f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user])}/{config["download"]["folder_name"]}'
+    folder = f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}/{config["download"]["folder_name"]}'
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -69,13 +78,16 @@ def handle_message_events(body, logger, event):  # type: ignore
         # Check if the file is a duplicate
         if os.path.exists(f'{folder}/{file["name"]}'):
             slackUtils.send(
+                app=app,
                 event=event,
                 message=strings.duplicate_file.format(folder=folder, file=file["name"]),
             )
+            continue
 
         # Check if the file is too large
-        if not validators.check_size(file_object=file):
+        if not validators.check_size(file_object=file, config=config):
             slackUtils.send(
+                app=app,
                 event=event,
                 message=strings.file_too_big.format(
                     file=file["name"],
@@ -88,8 +100,9 @@ def handle_message_events(body, logger, event):  # type: ignore
             continue
 
         # Check if the folder is full
-        if not fileOperators.check_folder_eligibility(formatters.folder_name(contact_object=authed_slack_users[user])):  # type: ignore
+        if not fileOperators.check_folder_eligibility(folder_name=formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts), config=config):  # type: ignore
             slackUtils.send(
+                app=app,
                 event=event,
                 message=strings.over_folder_limit.format(
                     file=file["name"],
@@ -109,12 +122,36 @@ def handle_message_events(body, logger, event):  # type: ignore
             headers={"Authorization": f'Bearer {config["slack"]["bot_token"]}'},
         )
 
+        # Check the file with VirusTotal
+        virus_check = util.is_virus(content=file_data.content, config=config)
+
+        if virus_check:
+            # Explicitly warn the notification channel
+            slackUtils.send(
+                app=app,
+                event=event,
+                message=strings.virus_found.format(
+                    user=user, file=file["name"], virus_name=virus_check
+                ),
+                channel=config["slack"]["notification_channel"],
+            )
+
+            # Let the user know there was a problem
+            slackUtils.send(
+                app=app,
+                event=event,
+                message=strings.virus_found,
+            )
+            # If one of the files is a virus stop processing files
+            return
+
         # Save the file
 
         with open(f'{folder}/{file["name"]}', "wb") as f:
             f.write(file_data.content)
 
         slackUtils.send(
+            app=app,
             event=event,
             message=strings.file_saved.format(file=file["name"], folder=folder),
         )

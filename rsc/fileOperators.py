@@ -1,9 +1,10 @@
 import os
 
-def check_folder_eligibility(folder_name: str) -> bool:
-    if not config: # type: ignore
-        config = {}
-        raise Exception("Global variable config not created")
+def check_folder_eligibility(folder_name: str, config=None) -> bool:
+    
+    if not config:
+        raise Exception("Must provide config")
+    
     
     folder = f'{config["download"]["root_directory"]}/{folder_name}/{config["download"]["folder_name"]}/'
     

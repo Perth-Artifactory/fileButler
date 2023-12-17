@@ -5,3 +5,5 @@ duplicate_file = "`{file}` has been ignored as it already exists in your butler 
 file_too_big = "`{file}` is {size}, which is larger than the limit of {max_file_size}. It has been ignored."
 over_folder_limit = "`{file}` has been ignored as your butler folder is full. You may only have {max_folder_files} files in your folder, and the total size of your butler folder may not exceed {max_folder_size}. To remedy this please delete/move some files from the {butler_folder} folder to somewhere else in your member directory."
 file_saved = "`{file}` has been saved to your butler folder. You can find it here: `{folder}/{file}`"
+virus_found = "There was a problem uploading your file. Please contact a committee member for assistance."
+virus_found_admin = "<@{user}> tried to upload `{file}` which has been flagged as a virus. (`{virus_name}`) It has not been saved."
