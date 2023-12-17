@@ -95,7 +95,7 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
         multiplier = 1000
         user_class = "administrator"
 
-    if user_class[0] in "aeiou":
+    if user_class[0] in ["a","e","i","o","u"]:
         user_class_prefix = "an"
     else:
         user_class_prefix = "a"
