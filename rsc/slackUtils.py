@@ -10,7 +10,10 @@ def send(
         raise Exception("Global Slack client not initialised")
 
     event = dict(event)
-    user = event["user"]["id"]
+    if type(event["user"]) != str:
+        user = event["user"]["id"]
+    else:
+        user = event["user"]
 
     # Inject ts
     if ts:
