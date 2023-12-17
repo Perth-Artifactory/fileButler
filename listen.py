@@ -143,6 +143,7 @@ def handle_message_events(body, logger, event):  # type: ignore
                 ),
                 channel=config["slack"]["notification_channel"],
                 ts=notification_ts,
+                broadcast=True,
             )
 
             if not notification_ts:
@@ -170,6 +171,7 @@ def handle_message_events(body, logger, event):  # type: ignore
                 ),
                 channel=config["slack"]["notification_channel"],
                 ts=notification_ts,
+                broadcast=True,
             )
 
             if not notification_ts:

@@ -1,4 +1,4 @@
-def send(event, message: "str", app=None, channel=None, ts=None):
+def send(event, message: "str", app=None, channel=None, ts=None, broadcast=False):
     if not app:
         raise Exception("Global Slack client not initialised")
 
@@ -17,6 +17,7 @@ def send(event, message: "str", app=None, channel=None, ts=None):
         channel=event["channel"],
         text=message,
         thread_ts=event["ts"],
+        reply_broadcast=broadcast,
     )
 
     return response.data["ts"]
