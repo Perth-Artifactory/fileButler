@@ -110,7 +110,7 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
     block_list[-2]["text"]["text"] = strings.quota.format(
         user_class_prefix=user_class_prefix,
         user_class=user_class,
-        max_file_size=file_size(config["download"]["max_file_size"] * multiplier),
+        max_file_size=file_size(1000000000 if config["download"]["max_file_size"] * multiplier > 1000000000 else config["download"]["max_file_size"] * multiplier),
         current_folder_size=file_size(folder_size),
         max_folder_size=file_size(config["download"]["max_folder_size"] * multiplier),
         folder_size_bar=createProgressBar(

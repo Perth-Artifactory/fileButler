@@ -31,14 +31,9 @@ def handle_message_events(body, logger, event):  # type: ignore
     if event["type"] == "message" and not event.get("subtype", None):
         # Strip ts from the event so the message isn't sent in a thread
         event.pop("ts")
-        slackUtils.send(
-            app=app,
-            event=event,
-            message=strings.dm,
-            dm=True
-        )
+        slackUtils.send(app=app, event=event, message=strings.dm, dm=True)
         return
-    
+
     # Discard message types we don't care about
     if event.get("subtype", "") != "file_share":
         print("Wrong message type, ignoring")
@@ -137,7 +132,9 @@ def handle_message_events(body, logger, event):  # type: ignore
                     file=filename,
                     size=formatters.file_size(file["size"]),
                     max_file_size=formatters.file_size(
-                        config["download"]["max_file_size"]
+                        num=1000000000
+                        if config["download"]["max_file_size"] * multiplier > 1000000000
+                        else config["download"]["max_file_size"] * multiplier
                     ),
                 ),
             )
@@ -240,9 +237,16 @@ def handle_message_events(body, logger, event):  # type: ignore
             channel=config["slack"]["notification_channel"],
             ts=notification_ts,
         )
-        
+
         # Update the app home
-        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)
+        slackUtils.updateHome(
+            user=user,
+            client=app.client,
+            config=config,
+            authed_slack_users=authed_slack_users,
+            contacts=contacts,
+            current_members=current_members,
+        )
 
         if not notification_ts:
             notification_ts = ts
@@ -258,13 +262,8 @@ def delete_folder(ack, body, logger):
 
     # Delete the folder contents
     if fileOperators.delete_folder_contents(folder=folder):
-        slackUtils.send(
-            app=app,
-            event=body,
-            message=strings.delete_success,
-            dm=True
-        )
-        
+        slackUtils.send(app=app, event=body, message=strings.delete_success, dm=True)
+
         # Send a message to the notification channel
         slackUtils.send(
             app=app,
@@ -272,9 +271,16 @@ def delete_folder(ack, body, logger):
             message=strings.delete_success_admin.format(user=user),
             channel=config["slack"]["notification_channel"],
         )
-        
+
         # Update the app home
-        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)
+        slackUtils.updateHome(
+            user=user,
+            client=app.client,
+            config=config,
+            authed_slack_users=authed_slack_users,
+            contacts=contacts,
+            current_members=current_members,
+        )
 
 
 # Get all linked users from TidyHQ
