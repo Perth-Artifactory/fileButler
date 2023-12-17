@@ -59,8 +59,6 @@ def file_size(num: int | float) -> str:
 
 
 def home(user, config, authed_slack_users, contacts, client, current_members) -> list[dict]:
-    print("constructing home for:")
-    print(user)
     # Check if user is allowed to use this service
     if user not in authed_slack_users:
         block_list = copy(blocks.not_authed)
