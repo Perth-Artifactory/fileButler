@@ -7,7 +7,7 @@ def send(
     event, message: "str", app=None, channel=None, ts=None, broadcast=False, dm=False
 ):
     if not app:
-        raise Exception("Global Slack client not initialised")
+        raise Exception("Global Slack client not connected")
 
     event = dict(event)
     if type(event["user"]) != str:
