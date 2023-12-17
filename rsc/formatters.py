@@ -4,6 +4,8 @@ from . import blocks, fileOperators, strings, slackUtils
 from pprint import pprint
 from datetime import datetime
 import os
+from pprint import pprint
+from copy import deepcopy as copy
 
 
 def folder_name(
@@ -57,25 +59,28 @@ def file_size(num: int | float) -> str:
 
 
 def home(user, config, authed_slack_users, contacts, client, current_members) -> list[dict]:
+    print("constructing home for:")
+    print(user)
     # Check if user is allowed to use this service
     if user not in authed_slack_users:
-        block_list = blocks.not_authed
+        block_list = copy(blocks.not_authed)
         block_list[-1]["text"]["text"] = block_list[-1]["text"]["text"].replace("{signup_url}", config["tidyhq"]["signup_url"])
         return block_list
 
     folder = f'{config["download"]["root_directory"]}/{folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
+    print("folder: " + folder)
 
     if not os.path.exists(folder):
         os.makedirs(folder)
 
     folder_size = fileOperators.get_current_folder_size(
-        user=user,
+        folder=folder,
         config=config,
         contacts=contacts,
         authed_slack_users=authed_slack_users,
     )
     folder_items = fileOperators.get_current_files(
-        user=user,
+        folder=folder,
         config=config,
         contacts=contacts,
         authed_slack_users=authed_slack_users,
@@ -101,7 +106,7 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
     block_list += blocks.explainer
     block_list += blocks.divider
 
-    block_list += blocks.quota
+    block_list += copy(blocks.quota)
     block_list[-2]["text"]["text"] = strings.quota.format(
         user_class_prefix=user_class_prefix,
         user_class=user_class,
@@ -139,10 +144,10 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
     if not lines:
         lines.append("No files found")
 
-    block_list += blocks.text
+    block_list += copy(blocks.text)
     block_list[-1]["text"]["text"] = "\n".join(lines)
 
-    block_list += blocks.folder_location
+    block_list += copy(blocks.folder_location)
     block_list[-1]["text"]["text"] = blocks.folder_location[-1]["text"]["text"].format(
         folder=folder
     )
@@ -150,7 +155,7 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
     block_list += blocks.divider
 
     block_list += blocks.current_file_delete
-
+    
     return block_list
 
 
