@@ -148,6 +148,6 @@ def start_server(config):
         return
 
     # Start auth_server.py as its own forked process
-    subprocess.Popen(
-        ["python", "auth_server.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    command = [config["auth_server"].get("python", "python"), "auth_server.py"]
+    logging.debug("Starting auth server with command: " + " ".join(command))
+    subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
