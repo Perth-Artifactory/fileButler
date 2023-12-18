@@ -11,13 +11,12 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.web.client import WebClient  # for typing
 from slack_sdk.web.slack_response import SlackResponse  # for typing
 
-from rsc import (fileOperators, formatters, slackUtils, strings, util,
-                 validators)
+from rsc import fileOperators, formatters, slackUtils, strings, util, validators
 
 # Load config
 with open("config.json") as config_file:
     config = json.load(config_file)
-    
+
 # Set up logging
 
 if "-v" in sys.argv:
@@ -46,7 +45,7 @@ def handle_message_events(body, logger, event):  # type: ignore
 
     # Discard message types we don't care about
     if event.get("subtype", "") != "file_share":
-        print("Wrong message type, ignoring")
+        logging.debug("Discarding message event of wrong type")
         return
 
     user: str = event["user"]
@@ -295,14 +294,14 @@ def delete_folder(ack, body, logger):
 
 # Get all linked users from TidyHQ
 
-print("Pulling TidyHQ contacts...")
+logging.info("Pulling TidyHQ contacts...")
 
 contacts: list[dict[str, Any]] = requests.get(
     "https://api.tidyhq.com/v1/contacts/",
     params={"access_token": config["tidyhq"]["token"]},
 ).json()
 
-print(f"Received {len(contacts)} contacts")
+logging.debug(f"Received {len(contacts)} contacts")
 
 authed_slack_users = {}
 current_members = {}
@@ -313,11 +312,14 @@ for contact in contacts:
             if contact["status"] != "expired":
                 current_members[field["value"]] = contact
 
-print(f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts")
+logging.debug(
+    f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts"
+)
+logging.debug(f"Found {len(current_members)} current members from associated accounts")
 
 # Get our user ID
 info = app.client.auth_test()
-print(f'Connected as @{info["user"]} to {info["team"]}')
+logging.debug(f'Connected as @{info["user"]} to {info["team"]}')
 
 if __name__ == "__main__":
     handler = SocketModeHandler(app, config["slack"]["app_token"])

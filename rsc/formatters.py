@@ -59,15 +59,18 @@ def file_size(num: int | float) -> str:
     return f"{num:.1f}B"
 
 
-def home(user, config, authed_slack_users, contacts, client, current_members) -> list[dict]:
+def home(
+    user, config, authed_slack_users, contacts, client, current_members
+) -> list[dict]:
     # Check if user is allowed to use this service
     if user not in authed_slack_users:
         block_list = copy(blocks.not_authed)
-        block_list[-1]["text"]["text"] = block_list[-1]["text"]["text"].replace("{signup_url}", config["tidyhq"]["signup_url"])
+        block_list[-1]["text"]["text"] = block_list[-1]["text"]["text"].replace(
+            "{signup_url}", config["tidyhq"]["signup_url"]
+        )
         return block_list
 
     folder = f'{config["download"]["root_directory"]}/{folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
-    print("folder: " + folder)
 
     if not os.path.exists(folder):
         os.makedirs(folder)
@@ -96,7 +99,7 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
         multiplier = 1000
         user_class = "administrator"
 
-    if user_class[0] in ["a","e","i","o","u"]:
+    if user_class[0] in ["a", "e", "i", "o", "u"]:
         user_class_prefix = "an"
     else:
         user_class_prefix = "a"
@@ -109,7 +112,11 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
     block_list[-2]["text"]["text"] = strings.quota.format(
         user_class_prefix=user_class_prefix,
         user_class=user_class,
-        max_file_size=file_size(1000000000 if config["download"]["max_file_size"] * multiplier > 1000000000 else config["download"]["max_file_size"] * multiplier),
+        max_file_size=file_size(
+            1000000000
+            if config["download"]["max_file_size"] * multiplier > 1000000000
+            else config["download"]["max_file_size"] * multiplier
+        ),
         current_folder_size=file_size(folder_size),
         max_folder_size=file_size(config["download"]["max_folder_size"] * multiplier),
         folder_size_bar=createProgressBar(
@@ -154,7 +161,7 @@ def home(user, config, authed_slack_users, contacts, client, current_members) ->
     block_list += blocks.divider
 
     block_list += blocks.current_file_delete
-    
+
     return block_list
 
 
