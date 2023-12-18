@@ -153,12 +153,12 @@ def home(
     block_list += copy(blocks.text)
     block_list[-1]["text"]["text"] = "\n".join(lines)
 
+    block_list += blocks.divider
+    
     block_list += copy(blocks.folder_location)
     block_list[-1]["text"]["text"] = blocks.folder_location[-1]["text"]["text"].format(
         folder=entitlements["folder"]
     )
-
-    block_list += blocks.divider
 
     block_list += blocks.current_file_delete
 
