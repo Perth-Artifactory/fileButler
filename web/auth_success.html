@@ -11,6 +11,9 @@
             if (count == 0) {
                 window.location.replace("REDIRECT_URL");
             }
+            if (count <= 0) {
+                window.close();
+            }
         }, 1000);
     </script>
 </body>
