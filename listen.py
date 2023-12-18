@@ -205,7 +205,7 @@ def handle_message_events(body, logger, event, client):  # type: ignore
 
         # Save the file
 
-        with open(f"{entitlements["folder"]}/{filename}", "wb") as f:
+        with open(f'{entitlements["folder"]}/{filename}', "wb") as f:
             f.write(file_data.content)
 
         # Let the user know the file was saved
