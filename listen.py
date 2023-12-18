@@ -31,7 +31,6 @@ root_logger.addHandler(ch)
 # Set up loop logging
 logger = logging.getLogger("main loop")
 
-logger.info("This is a test message")
 
 # Changing logging level for slack_bolt to info
 slack_logger = logging.getLogger("slack_bolt")
