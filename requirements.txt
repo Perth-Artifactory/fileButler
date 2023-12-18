@@ -1,2 +1,5 @@
 slack_bolt
 requests
+flask
+waitress
+cryptography
