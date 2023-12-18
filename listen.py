@@ -129,7 +129,7 @@ def handle_message_events(body, logger, event, client):  # type: ignore
             continue
 
         # Check if the folder is full
-        if not fileOperators.check_folder_eligibility(contacts=contacts, contact=authed_slack_users[user], config=config, user=user, multiplier=multiplier):  # type: ignore
+        if not fileOperators.check_folder_eligibility(contacts=contacts, contact=authed_slack_users[user], config=config, user=user, multiplier=entitlements["multiplier"]):  # type: ignore
             slackUtils.send(
                 app=app,
                 event=event,
