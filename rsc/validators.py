@@ -1,4 +1,9 @@
+import logging
 from typing import Any, Literal
+
+# Set up logging
+
+logger = logging.getLogger("validators")
 
 
 def check_size(

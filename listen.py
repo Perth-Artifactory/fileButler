@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import sys
+import time
 from pprint import pprint
 from typing import Any, Literal
-import time
 
 import requests
 from slack_bolt import App
@@ -18,15 +18,27 @@ from rsc import auth, fileOperators, formatters, slackUtils, strings, util, vali
 with open("config.json") as config_file:
     config = json.load(config_file)
 
-# Set up logging
-
+# Set up root logger
+root_logger = logging.getLogger()
 if "-v" in sys.argv:
-    logging.basicConfig(level=logging.DEBUG)
+    root_logger.setLevel(logging.DEBUG)
 else:
-    logging.basicConfig(level=logging.INFO)
+    root_logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+root_logger.addHandler(ch)
+
+# Set up loop logging
+logger = logging.getLogger("main loop")
+
+logger.info("This is a test message")
+
+# Changing logging level for slack_bolt to info
+slack_logger = logging.getLogger("slack_bolt")
+slack_logger.setLevel(logging.INFO)
 
 # Connect to Slack
-app = App(token=config["slack"]["bot_token"])
+app = App(token=config["slack"]["bot_token"], logger=slack_logger)
 
 
 # Update the app home in certain circumstances
@@ -46,7 +58,7 @@ def handle_message_events(body, logger, event, client):  # type: ignore
 
     # Discard message types we don't care about
     if event.get("subtype", "") != "file_share":
-        logging.debug("Discarding message event of wrong type")
+        logger.debug("Discarding message event of wrong type")
         return
 
     user: str = event["user"]
@@ -59,7 +71,7 @@ def handle_message_events(body, logger, event, client):  # type: ignore
         authed_slack_users=authed_slack_users,
         current_members=current_members,
         contacts=contacts,
-        client=client
+        client=client,
     )
 
     # Users with no entitlements are given info on how to get them
@@ -105,7 +117,9 @@ def handle_message_events(body, logger, event, client):  # type: ignore
             slackUtils.send(
                 app=app,
                 event=event,
-                message=strings.duplicate_file.format(folder=entitlements["folder"], file=filename),
+                message=strings.duplicate_file.format(
+                    folder=entitlements["folder"], file=filename
+                ),
             )
             continue
 
@@ -121,8 +135,11 @@ def handle_message_events(body, logger, event, client):  # type: ignore
                     size=formatters.file_size(file["size"]),
                     max_file_size=formatters.file_size(
                         num=1000000000
-                        if config["download"]["max_file_size"] * entitlements["multiplier"] > 1000000000
-                        else config["download"]["max_file_size"] * entitlements["multiplier"]
+                        if config["download"]["max_file_size"]
+                        * entitlements["multiplier"]
+                        > 1000000000
+                        else config["download"]["max_file_size"]
+                        * entitlements["multiplier"]
                     ),
                 ),
             )
@@ -136,7 +153,8 @@ def handle_message_events(body, logger, event, client):  # type: ignore
                 message=strings.over_folder_limit.format(
                     file=filename,
                     max_folder_size=formatters.file_size(
-                        config["download"]["max_folder_size"] * entitlements["multiplier"]
+                        config["download"]["max_folder_size"]
+                        * entitlements["multiplier"]
                     ),
                     max_folder_files=config["download"]["max_folder_files"]
                     * entitlements["multiplier"],
@@ -151,7 +169,8 @@ def handle_message_events(body, logger, event, client):  # type: ignore
                 message=strings.over_folder_limit_admin.format(
                     file=filename,
                     max_folder_size=formatters.file_size(
-                        config["download"]["max_folder_size"] * entitlements["multiplier"]
+                        config["download"]["max_folder_size"]
+                        * entitlements["multiplier"]
                     ),
                     max_folder_files=config["download"]["max_folder_files"]
                     * entitlements["multiplier"],
@@ -212,7 +231,9 @@ def handle_message_events(body, logger, event, client):  # type: ignore
         slackUtils.send(
             app=app,
             event=event,
-            message=strings.file_saved.format(file=filename, folder=entitlements["folder"]),
+            message=strings.file_saved.format(
+                file=filename, folder=entitlements["folder"]
+            ),
         )
 
         # Send a message to the notification channel
@@ -251,7 +272,7 @@ def delete_folder(ack, body, client):
         authed_slack_users=authed_slack_users,
         current_members=current_members,
         contacts=contacts,
-        client=client
+        client=client,
     )
 
     # Delete the folder contents
@@ -282,47 +303,64 @@ def refresh_home(ack, body, client):
     ack()
     slackUtils.updateHome(user=body["user"]["id"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
 
+
 @app.action("requesting_auth")
 def user_off_requesting_auth(ack, body, logger):
     ack()
     user = body["user"]["id"]
-    
+
     count = 0
     while count < 100 and not auth.check_auth(id=user, config=config):
         time.sleep(0.1)
         count += 1
     # Did the user manage to authenticate in time?
     if auth.check_auth(id=user, config=config):
-        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)
+        slackUtils.updateHome(
+            user=user,
+            client=app.client,
+            config=config,
+            authed_slack_users=authed_slack_users,
+            contacts=contacts,
+            current_members=current_members,
+        )
     else:
         # Update the app home with a refresh button
-        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members, auth_step=2)
+        slackUtils.updateHome(
+            user=user,
+            client=app.client,
+            config=config,
+            authed_slack_users=authed_slack_users,
+            contacts=contacts,
+            current_members=current_members,
+            auth_step=2,
+        )
+
 
 # Validate auth server config
 if not auth.validate_config(config=config):
     logging.critical("Auth server config is invalid, exiting...")
     sys.exit(1)
-    
+
 # Reload the config in case it was changed
 with open("config.json") as config_file:
     config = json.load(config_file)
-    
+
 # Start the auth server
-logging.info("Starting auth server...")
+logger.info("Starting auth server...")
 
 # Launch auth_server.py as a forked subprocess
-auth.start_server(config=config)
+auth.start_server(config=config, verbose="-v" in sys.argv)
 
 # Get all linked users from TidyHQ
 
-logging.info("Pulling TidyHQ contacts...")
+logger.info("Pulling TidyHQ contacts...")
 
 contacts: list[dict[str, Any]] = requests.get(
     "https://api.tidyhq.com/v1/contacts/",
     params={"access_token": config["tidyhq"]["token"]},
 ).json()
 
-logging.debug(f"Received {len(contacts)} contacts")
+logger.debug(f"Received {len(contacts)} contacts")
 
 authed_slack_users = {}
 current_members = {}
@@ -333,20 +371,20 @@ for contact in contacts:
             if contact["status"] != "expired":
                 current_members[field["value"]] = contact
 
-logging.debug(
+logger.debug(
     f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts"
 )
-logging.debug(f"Found {len(current_members)} current members from associated accounts")
+logger.debug(f"Found {len(current_members)} current members from associated accounts")
 
 # Get our user ID
 info = app.client.auth_test()
-logging.debug(f'Connected as @{info["user"]} to {info["team"]}')
+logger.debug(f'Connected as @{info["user"]} to {info["team"]}')
 
 # Check if the auth server came up while we were getting data
 while not auth.check_server(config=config):
     logging.warning("Auth server is not up, waiting 5 seconds...")
     time.sleep(5)
-logging.info("Auth server is running")
+logger.info("Auth server is running")
 
 
 if __name__ == "__main__":

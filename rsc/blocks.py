@@ -76,7 +76,11 @@ request_auth_step_1 = [
         "accessory": {
             "type": "button",
             "style": "primary",
-            "text": {"type": "plain_text", "text": strings.request_auth_button, "emoji": True},
+            "text": {
+                "type": "plain_text",
+                "text": strings.request_auth_button,
+                "emoji": True,
+            },
             "value": "unused",
             "action_id": "requesting_auth",
             "url": "",

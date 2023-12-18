@@ -1,8 +1,13 @@
+import logging
 from typing import Any
 
 from slack_sdk.web.client import WebClient  # for typing
 
 from . import formatters
+
+# Set up logging
+
+logger = logging.getLogger("formatters")
 
 
 def send(
@@ -25,7 +30,7 @@ def send(
     if channel:
         event["channel"] = channel
 
-    # iF 
+    # iF
     if not event.get("ts", False) and not channel:
         # Open a DM with the user
         response = app.client.conversations_open(users=user)
@@ -38,9 +43,7 @@ def send(
 
     elif channel:
         # Send an unthreaded message to the channel
-        response = app.client.chat_postMessage(
-            channel=channel, text=message
-        )
+        response = app.client.chat_postMessage(channel=channel, text=message)
 
     else:
         # Send a threaded message to the user
@@ -61,7 +64,7 @@ def check_unlimited(user, config, app=None, client=None):
         r = client.usergroups_list(include_users=True)
     else:
         raise Exception("Must provide either app or client")
-    
+
     groups: list[dict[str, Any]] = r.data["usergroups"]
     for group in groups:
         if group["id"] in config["slack"]["unlimited_groups"]:
@@ -71,7 +74,13 @@ def check_unlimited(user, config, app=None, client=None):
 
 
 def updateHome(
-    user: str, client: WebClient, config, authed_slack_users, contacts, current_members, auth_step = None
+    user: str,
+    client: WebClient,
+    config,
+    authed_slack_users,
+    contacts,
+    current_members,
+    auth_step=None,
 ) -> None:
     home_view = {
         "type": "home",
@@ -82,11 +91,12 @@ def updateHome(
             contacts=contacts,
             client=client,
             current_members=current_members,
-            auth_step=auth_step
+            auth_step=auth_step,
         ),
     }
     client.views_publish(user_id=user, view=home_view)
 
-def get_name(id, client: WebClient)-> str:
+
+def get_name(id, client: WebClient) -> str:
     r = client.users_info(user=id)
-    return r.data["user"]["profile"]["display_name"] # type: ignore
+    return r.data["user"]["profile"]["display_name"]  # type: ignore

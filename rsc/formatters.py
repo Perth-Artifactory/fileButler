@@ -1,3 +1,4 @@
+import logging
 import os
 from copy import deepcopy as copy
 from datetime import datetime
@@ -6,7 +7,11 @@ from typing import Any, Literal
 
 import requests
 
-from . import blocks, fileOperators, slackUtils, strings, auth, util
+from . import auth, blocks, fileOperators, slackUtils, strings, util
+
+# Set up logging
+
+logger = logging.getLogger("formatters")
 
 
 def folder_name(
@@ -60,7 +65,7 @@ def file_size(num: int | float) -> str:
 
 
 def home(
-    user, config, authed_slack_users, contacts, client, current_members, auth_step = None
+    user, config, authed_slack_users, contacts, client, current_members, auth_step=None
 ) -> list[dict]:
     entitlements = util.check_entitlements(
         user=user,
@@ -68,7 +73,7 @@ def home(
         authed_slack_users=authed_slack_users,
         current_members=current_members,
         contacts=contacts,
-        client=client
+        client=client,
     )
 
     # If the folder field is blank the user is not entitled to use this service
@@ -80,7 +85,9 @@ def home(
         block_list += blocks.divider
         if auth_step != 2:
             block_list += copy(blocks.request_auth_step_1)
-            block_list[-1]["accessory"]["url"] = auth.generate_auth_request_url(id=user, config=config, client=client)
+            block_list[-1]["accessory"]["url"] = auth.generate_auth_request_url(
+                id=user, config=config, client=client
+            )
         else:
             block_list += blocks.request_auth_step_2
         return block_list
@@ -154,7 +161,7 @@ def home(
     block_list[-1]["text"]["text"] = "\n".join(lines)
 
     block_list += blocks.divider
-    
+
     block_list += copy(blocks.folder_location)
     block_list[-1]["text"]["text"] = blocks.folder_location[-1]["text"]["text"].format(
         folder=entitlements["folder"]

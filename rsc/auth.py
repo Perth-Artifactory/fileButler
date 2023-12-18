@@ -4,6 +4,7 @@ import time
 from pprint import pprint
 from typing import Literal
 import logging
+import subprocess
 
 import requests
 from cryptography.fernet import Fernet
@@ -11,6 +12,10 @@ from slack_sdk.web.client import WebClient  # for typing
 from slack_sdk.web.slack_response import SlackResponse  # for typing
 
 from . import slackUtils
+
+# Set up logging
+
+logger = logging.getLogger("auth")
 
 
 def generate_auth_request_url(
@@ -138,10 +143,7 @@ def validate_config(config):
     return True
 
 
-import subprocess
-
-
-def start_server(config):
+def start_server(config, verbose=False):
     # Check if the server is already running
     if check_server(config):
         logging.warning("Auth server is already running")
@@ -149,5 +151,7 @@ def start_server(config):
 
     # Start auth_server.py as its own forked process
     command = [config["auth_server"].get("python", "python"), "auth_server.py"]
-    logging.debug("Starting auth server with command: " + " ".join(command))
-    subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if verbose:
+        command.append("-v")
+    logger.debug("Starting auth server with command: " + " ".join(command))
+    subprocess.Popen(command)
