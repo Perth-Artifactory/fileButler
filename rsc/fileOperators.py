@@ -1,6 +1,8 @@
 import os
-from . import formatters
 from typing import Literal
+
+from . import formatters
+
 
 def check_folder_eligibility(contacts, contact: dict, config=None, current_members: dict|Literal[None]=None,authed_slack_users: dict|Literal[None]=None, user: str="", multiplier=0) -> bool:
     

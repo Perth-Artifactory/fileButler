@@ -1,19 +1,29 @@
 import json
-from pprint import pprint
-from typing import Literal, Any
-import requests
+import logging
 import os
 import sys
-from rsc import util, validators, formatters, fileOperators, slackUtils, strings
+from pprint import pprint
+from typing import Any, Literal
 
+import requests
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.web.client import WebClient  # for typing
 from slack_sdk.web.slack_response import SlackResponse  # for typing
 
+from rsc import (fileOperators, formatters, slackUtils, strings, util,
+                 validators)
+
 # Load config
 with open("config.json") as config_file:
     config = json.load(config_file)
+    
+# Set up logging
+
+if "-v" in sys.argv:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
 
 # Connect to Slack
 app = App(token=config["slack"]["bot_token"])

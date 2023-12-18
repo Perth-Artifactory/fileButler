@@ -1,5 +1,7 @@
 from typing import Any
+
 from slack_sdk.web.client import WebClient  # for typing
+
 from . import formatters
 
 
