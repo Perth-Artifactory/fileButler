@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 import requests
 
-from . import blocks, fileOperators, slackUtils, strings
+from . import blocks, fileOperators, slackUtils, strings, auth, util
 
 
 def folder_name(
@@ -60,46 +60,42 @@ def file_size(num: int | float) -> str:
 
 
 def home(
-    user, config, authed_slack_users, contacts, client, current_members
+    user, config, authed_slack_users, contacts, client, current_members, auth_step = None
 ) -> list[dict]:
-    # Check if user is allowed to use this service
-    if user not in authed_slack_users:
+    entitlements = util.check_entitlements(
+        user=user,
+        config=config,
+        authed_slack_users=authed_slack_users,
+        current_members=current_members,
+        contacts=contacts,
+        client=client
+    )
+
+    # If the folder field is blank the user is not entitled to use this service
+    if not entitlements["folder"]:
         block_list = copy(blocks.not_authed)
         block_list[-1]["text"]["text"] = block_list[-1]["text"]["text"].replace(
             "{signup_url}", config["tidyhq"]["signup_url"]
         )
+        block_list += blocks.divider
+        if auth_step != 2:
+            block_list += copy(blocks.request_auth_step_1)
+            block_list[-1]["accessory"]["url"] = auth.generate_auth_request_url(id=user, config=config, client=client)
+        else:
+            block_list += blocks.request_auth_step_2
         return block_list
 
-    folder = f'{config["download"]["root_directory"]}/{folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
-
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    if not os.path.exists(entitlements["folder"]):
+        os.makedirs(entitlements["folder"])
 
     folder_size = fileOperators.get_current_folder_size(
-        folder=folder,
-        config=config,
-        contacts=contacts,
-        authed_slack_users=authed_slack_users,
+        folder=entitlements["folder"],
     )
     folder_items = fileOperators.get_current_files(
-        folder=folder,
-        config=config,
-        contacts=contacts,
-        authed_slack_users=authed_slack_users,
+        folder=entitlements["folder"],
     )
 
-    # Get modifier for member/non-member
-    user_class = "casual attendee"
-    multiplier = 1
-    if user in current_members:
-        multiplier = config["download"]["member_multiplier"]
-        user_class = "registered user"
-    # Since a user can be both a member and in an unlimited group we check the group after since it takes precedence
-    if slackUtils.check_unlimited(client=client, user=user, config=config):
-        multiplier = 1000
-        user_class = "administrator"
-
-    if user_class[0] in ["a", "e", "i", "o", "u"]:
+    if entitlements["user_class"][0] in ["a", "e", "i", "o", "u"]:
         user_class_prefix = "an"
     else:
         user_class_prefix = "a"
@@ -111,24 +107,28 @@ def home(
     block_list += copy(blocks.quota)
     block_list[-2]["text"]["text"] = strings.quota.format(
         user_class_prefix=user_class_prefix,
-        user_class=user_class,
+        user_class=entitlements["user_class"],
         max_file_size=file_size(
             1000000000
-            if config["download"]["max_file_size"] * multiplier > 1000000000
-            else config["download"]["max_file_size"] * multiplier
+            if config["download"]["max_file_size"] * entitlements["multiplier"]
+            > 1000000000
+            else config["download"]["max_file_size"] * entitlements["multiplier"]
         ),
         current_folder_size=file_size(folder_size),
-        max_folder_size=file_size(config["download"]["max_folder_size"] * multiplier),
+        max_folder_size=file_size(
+            config["download"]["max_folder_size"] * entitlements["multiplier"]
+        ),
         folder_size_bar=createProgressBar(
             current=folder_size,
-            total=config["download"]["max_folder_size"] * multiplier,
+            total=config["download"]["max_folder_size"] * entitlements["multiplier"],
             segments=7,
         ),
         current_folder_items=len(folder_items),
-        max_folder_files=config["download"]["max_folder_files"] * multiplier,
+        max_folder_files=config["download"]["max_folder_files"]
+        * entitlements["multiplier"],
         folder_items_bar=createProgressBar(
             current=len(folder_items),
-            total=config["download"]["max_folder_files"] * multiplier,
+            total=config["download"]["max_folder_files"] * entitlements["multiplier"],
             segments=7,
         ),
     )
@@ -155,7 +155,7 @@ def home(
 
     block_list += copy(blocks.folder_location)
     block_list[-1]["text"]["text"] = blocks.folder_location[-1]["text"]["text"].format(
-        folder=folder
+        folder=entitlements["folder"]
     )
 
     block_list += blocks.divider

@@ -71,7 +71,7 @@ def check_unlimited(user, config, app=None, client=None):
 
 
 def updateHome(
-    user: str, client: WebClient, config, authed_slack_users, contacts, current_members
+    user: str, client: WebClient, config, authed_slack_users, contacts, current_members, auth_step = None
 ) -> None:
     home_view = {
         "type": "home",
@@ -81,7 +81,12 @@ def updateHome(
             authed_slack_users=authed_slack_users,
             contacts=contacts,
             client=client,
-            current_members=current_members
+            current_members=current_members,
+            auth_step=auth_step
         ),
     }
     client.views_publish(user_id=user, view=home_view)
+
+def get_name(id, client: WebClient)-> str:
+    r = client.users_info(user=id)
+    return r.data["user"]["profile"]["display_name"] # type: ignore

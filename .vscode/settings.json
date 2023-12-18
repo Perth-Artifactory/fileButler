@@ -1,9 +1,14 @@
 {
     "cSpell.words": [
+        "apikey",
         "authed",
         "auths",
         "Fernet",
+        "signup",
         "tidyhq",
-        "usergroups"
+        "usergroups",
+        "virustotal",
+        "xapp",
+        "xoxb"
     ]
 }

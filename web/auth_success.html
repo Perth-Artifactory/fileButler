@@ -1,0 +1,18 @@
+<html>
+
+<body>
+    <p>Thank you for verifying you're in the workshop! You will be redirected back to Slack in...</p>
+    <div id="counter">2</div>
+    <script>
+        setInterval(function () {
+            var div = document.querySelector("#counter");
+            var count = div.textContent * 1 - 1;
+            div.textContent = count;
+            if (count == 0) {
+                window.location.replace("REDIRECT_URL");
+            }
+        }, 1000);
+    </script>
+</body>
+
+</html>

@@ -1,12 +1,14 @@
+import datetime
 import json
-from cryptography.fernet import Fernet
 import logging
 import sys
-import datetime
 
 import flask
-from flask import request
+from cryptography.fernet import Fernet
+from flask import redirect, request
+from slack_bolt import App
 from waitress import serve
+
 
 def purge_expired():
     global auth_list
@@ -17,6 +19,10 @@ def purge_expired():
     for id in popping:
         auth_list.pop(id)
     logging.debug(f'Got {len(auth_list)} auths from file and purged {len(popping)} expired auths')
+
+def redirect_page(link):
+    with open("./web/auth_success.html", "r") as f:
+        return f.read().replace("REDIRECT_URL",link)
 
 with open("config.json", "r") as f:
     config: dict = json.load(f)
@@ -29,6 +35,11 @@ else:
     logging.basicConfig(level=logging.INFO)
 
 app = flask.Flask(__name__)
+
+@app.route("/", methods=["GET"]) # type: ignore
+def index():
+    with open("./web/index.html", "r") as f:
+        return f.read()
 
 @app.route("/api/v1/authList", methods=["GET"]) # type: ignore
 def return_auth_list():
@@ -46,15 +57,9 @@ def return_auth_list():
     
     return flask.jsonify(auth_list), 200
 
-@app.route("/api/v1/authRequest/", methods=["POST"]) # type: ignore
-def request_auth():
-    if not request.json:
-        logging.debug("Request is not json")
-        return flask.jsonify({"error": "Request is not json"}), 400
-    authRequest = request.json["authRequest"].encode()
-    if not authRequest:
-        logging.debug("authRequest param not found")
-        return flask.jsonify({"error": "No authRequest found"}), 400
+@app.route("/api/v1/authRequest/<en_request>", methods=["GET"]) # type: ignore
+def request_auth(en_request):
+    authRequest = en_request.encode()
     
     global auth_list
     
@@ -77,8 +82,8 @@ def request_auth():
     # Save the auth list to file
     with open("temp_auths.json", "w") as f:
         json.dump(auth_list, f)
-        
-    return flask.jsonify({"message": "OK"}), 200
+    
+    return redirect_page(link=deep_link)
 
 if __name__ == "__main__":
     # Set up decryption
@@ -89,5 +94,21 @@ if __name__ == "__main__":
         auth_list: list = json.load(f)
     
     purge_expired()
+    
+    # Get the IDs associated with our Slack credentials for creating deep links
+    
+    # Set up the slack app
+    slack_app = App(token=config["slack"]["bot_token"])
+    
+    # Get our own bot info to retrieve the bot ID and team ID
+    slack_bot_info = slack_app.client.auth_test()
+    team_id = slack_bot_info["team_id"]
+    bot_id = slack_bot_info["bot_id"]
+    
+    # Use the bot ID to get the app ID
+    slack_bot_info = slack_app.client.bots_info(bot=bot_id)
+    app_id = slack_bot_info["bot"]["app_id"]
+    
+    deep_link = f'slack://app?team={team_id}&id={app_id}&tab=home'
 
     serve(app, host=config["auth_server"]["host"], port=config["auth_server"]["port"])

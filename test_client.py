@@ -35,11 +35,19 @@ auth_request = json.dumps(raw_auth_request).encode()
 encrypted_auth_request = crypt.encrypt(auth_request)
 
 # send the request
-r = requests.post(
-    f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/api/v1/authRequest",
-    json={"authRequest": encrypted_auth_request.decode()},
-)
-pprint(r.content)
+try:
+    r = requests.post(
+        f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/api/v1/authRequest/{encrypted_auth_request.decode()}",
+    )
+    if r.status_code == 200:
+        print("Server returned 200 OK")
+except requests.exceptions.InvalidSchema as e:
+    if "slack://" in e.args[0]:
+        print("Server returned slack deep link (expected)")
+        print(e.args[0].split(" ")[-1])
+    else:
+        print("Server returned an invalid schema that was not a slack deep link")
+        print(e)
 
 print("Sleeping for 5 seconds")
 time.sleep(5)
@@ -56,7 +64,9 @@ pprint(r.json())
 print("getting current auths with invalid token")
 r = requests.get(
     f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/api/v1/authList",
-    headers={"Authorization": "Bearer nonsense"},
+    headers={
+        "Authorization": "Bearer " + config["auth_server"]["query_token"] + "nonsense"
+    },
 )
 pprint(r.json())
 

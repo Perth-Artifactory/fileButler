@@ -4,6 +4,7 @@ import os
 import sys
 from pprint import pprint
 from typing import Any, Literal
+import time
 
 import requests
 from slack_bolt import App
@@ -11,7 +12,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.web.client import WebClient  # for typing
 from slack_sdk.web.slack_response import SlackResponse  # for typing
 
-from rsc import fileOperators, formatters, slackUtils, strings, util, validators
+from rsc import auth, fileOperators, formatters, slackUtils, strings, util, validators
 
 # Load config
 with open("config.json") as config_file:
@@ -28,7 +29,7 @@ else:
 app = App(token=config["slack"]["bot_token"])
 
 
-# Update the app home
+# Update the app home in certain circumstances
 @app.event("app_home_opened")  # type: ignore
 def app_home_opened(event: dict[str, Any], client: WebClient, ack) -> None:
     ack()
@@ -36,7 +37,7 @@ def app_home_opened(event: dict[str, Any], client: WebClient, ack) -> None:
 
 
 @app.event("message")
-def handle_message_events(body, logger, event):  # type: ignore
+def handle_message_events(body, logger, event, client):  # type: ignore
     if event["type"] == "message" and not event.get("subtype", None):
         # Strip ts from the event so the message isn't sent in a thread
         event.pop("ts")
@@ -52,15 +53,22 @@ def handle_message_events(body, logger, event):  # type: ignore
 
     notification_ts = None
 
-    # Check if the user is in our list of authed users
-    if user not in authed_slack_users:
-        # Let the user know
+    entitlements = util.check_entitlements(
+        user=user,
+        config=config,
+        authed_slack_users=authed_slack_users,
+        current_members=current_members,
+        contacts=contacts,
+        client=client
+    )
+
+    # Users with no entitlements are given info on how to get them
+    if not entitlements["folder"]:
         slackUtils.send(
             app=app,
             event=event,
-            message=strings.not_authed.format(
-                signup_url=config["tidyhq"]["signup_url"]
-            ),
+            message=strings.not_authed.format(signup_url=config["tidyhq"]["signup_url"])
+            + strings.not_authed_msg_addon,
         )
         # Let the notification channel know
         ts = slackUtils.send(
@@ -75,28 +83,8 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         return
 
-    # Check if the Member Work folder exists
-    if not os.path.exists(
-        f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}'
-    ):
-        slackUtils.send(
-            app=app,
-            event=event,
-            message=strings.no_root_directory.format(
-                folder={
-                    formatters.folder_name(
-                        contact_object=authed_slack_users[user],
-                        config=config,
-                        contacts=contacts,
-                    )
-                }
-            ),
-        )
-
     # Check if the butler folder exists
-    if not os.path.exists(
-        f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}/{config["download"]["folder_name"]}'
-    ):
+    if not os.path.exists(entitlements["folder"]):
         slackUtils.send(
             app=app,
             event=event,
@@ -106,33 +94,24 @@ def handle_message_events(body, logger, event):  # type: ignore
         )
 
     # Create the folder if it doesn't exist
-    folder = f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}/{config["download"]["folder_name"]}'
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    # Check if the user is a current member and set the quota multiplier
-    if slackUtils.check_unlimited(app=app, user=user, config=config):
-        multiplier = 1000
-    elif user in current_members:
-        multiplier = config["download"]["member_multiplier"]
-    else:
-        multiplier = 1
+    if not os.path.exists(entitlements["folder"]):
+        os.makedirs(entitlements["folder"])
 
     for file in event["files"]:
         filename = formatters.clean_filename(file["name"])
 
         # Check if the file is a duplicate
-        if os.path.exists(f"{folder}/{filename}"):
+        if os.path.exists(f"{entitlements["folder"]}/{filename}"):
             slackUtils.send(
                 app=app,
                 event=event,
-                message=strings.duplicate_file.format(folder=folder, file=filename),
+                message=strings.duplicate_file.format(folder=entitlements["folder"], file=filename),
             )
             continue
 
         # Check if the file is too large
         if not validators.check_size(
-            file_object=file, config=config, multiplier=multiplier
+            file_object=file, config=config, multiplier=entitlements["multiplier"]
         ):
             slackUtils.send(
                 app=app,
@@ -142,8 +121,8 @@ def handle_message_events(body, logger, event):  # type: ignore
                     size=formatters.file_size(file["size"]),
                     max_file_size=formatters.file_size(
                         num=1000000000
-                        if config["download"]["max_file_size"] * multiplier > 1000000000
-                        else config["download"]["max_file_size"] * multiplier
+                        if config["download"]["max_file_size"] * entitlements["multiplier"] > 1000000000
+                        else config["download"]["max_file_size"] * entitlements["multiplier"]
                     ),
                 ),
             )
@@ -157,10 +136,10 @@ def handle_message_events(body, logger, event):  # type: ignore
                 message=strings.over_folder_limit.format(
                     file=filename,
                     max_folder_size=formatters.file_size(
-                        config["download"]["max_folder_size"] * multiplier
+                        config["download"]["max_folder_size"] * entitlements["multiplier"]
                     ),
                     max_folder_files=config["download"]["max_folder_files"]
-                    * multiplier,
+                    * entitlements["multiplier"],
                     butler_folder=config["download"]["folder_name"],
                 ),
             )
@@ -172,10 +151,10 @@ def handle_message_events(body, logger, event):  # type: ignore
                 message=strings.over_folder_limit_admin.format(
                     file=filename,
                     max_folder_size=formatters.file_size(
-                        config["download"]["max_folder_size"] * multiplier
+                        config["download"]["max_folder_size"] * entitlements["multiplier"]
                     ),
                     max_folder_files=config["download"]["max_folder_files"]
-                    * multiplier,
+                    * entitlements["multiplier"],
                     butler_folder=config["download"]["folder_name"],
                     user=user,
                 ),
@@ -226,14 +205,14 @@ def handle_message_events(body, logger, event):  # type: ignore
 
         # Save the file
 
-        with open(f"{folder}/{filename}", "wb") as f:
+        with open(f"{entitlements["folder"]}/{filename}", "wb") as f:
             f.write(file_data.content)
 
         # Let the user know the file was saved
         slackUtils.send(
             app=app,
             event=event,
-            message=strings.file_saved.format(file=filename, folder=folder),
+            message=strings.file_saved.format(file=filename, folder=entitlements["folder"]),
         )
 
         # Send a message to the notification channel
@@ -241,7 +220,7 @@ def handle_message_events(body, logger, event):  # type: ignore
             app=app,
             event=event,
             message=strings.file_saved_admin.format(
-                file=filename, folder=folder, user=user
+                file=filename, folder=entitlements["folder"], user=user
             ),
             channel=config["slack"]["notification_channel"],
             ts=notification_ts,
@@ -262,15 +241,21 @@ def handle_message_events(body, logger, event):  # type: ignore
 
 
 @app.action("purge_folder")
-def delete_folder(ack, body, logger):
+def delete_folder(ack, body, client):
     ack()
     user = body["user"]["id"]
 
-    # Construct folder path
-    folder = f'{config["download"]["root_directory"]}/{formatters.folder_name(contact_object=authed_slack_users[user], config=config, contacts=contacts)}/{config["download"]["folder_name"]}'
+    entitlements = util.check_entitlements(
+        user=user,
+        config=config,
+        authed_slack_users=authed_slack_users,
+        current_members=current_members,
+        contacts=contacts,
+        client=client
+    )
 
     # Delete the folder contents
-    if fileOperators.delete_folder_contents(folder=folder):
+    if fileOperators.delete_folder_contents(folder=entitlements["folder"]):
         slackUtils.send(app=app, event=body, message=strings.delete_success, dm=True)
 
         # Send a message to the notification channel
@@ -290,6 +275,34 @@ def delete_folder(ack, body, logger):
             contacts=contacts,
             current_members=current_members,
         )
+
+
+@app.action("refresh_home")
+def refresh_home(ack, body, client):
+    ack()
+    slackUtils.updateHome(user=body["user"]["id"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
+
+@app.action("requesting_auth")
+def user_off_requesting_auth(ack, body, logger):
+    ack()
+    user = body["user"]["id"]
+    
+    count = 0
+    while count < 100 and not auth.check_auth(id=user, config=config):
+        time.sleep(0.1)
+        count += 1
+    # Did the user manage to authenticate in time?
+    if auth.check_auth(id=user, config=config):
+        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)
+    else:
+        # Update the app home with a refresh button
+        slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members, auth_step=2)
+
+
+# Test if the auth server is up first before fetching data
+while not auth.check_server(config=config):
+    logging.warning("Auth server is not up, waiting 5 seconds...")
+    time.sleep(5)
 
 
 # Get all linked users from TidyHQ
@@ -312,6 +325,9 @@ for contact in contacts:
             if contact["status"] != "expired":
                 current_members[field["value"]] = contact
 
+authed_slack_users.pop("UC6T4U150")
+current_members.pop("UC6T4U150")
+
 logging.debug(
     f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts"
 )
@@ -320,6 +336,7 @@ logging.debug(f"Found {len(current_members)} current members from associated acc
 # Get our user ID
 info = app.client.auth_test()
 logging.debug(f'Connected as @{info["user"]} to {info["team"]}')
+
 
 if __name__ == "__main__":
     handler = SocketModeHandler(app, config["slack"]["app_token"])

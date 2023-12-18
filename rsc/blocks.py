@@ -58,6 +58,7 @@ current_file_delete = [
         },
     }
 ]
+
 not_authed = [
     {"type": "section", "text": {"type": "mrkdwn", "text": strings.not_authed}}
 ]
@@ -68,3 +69,34 @@ folder_location = [
     }
 ]
 text = [{"type": "section", "text": {"type": "mrkdwn", "text": ""}}]
+request_auth_step_1 = [
+    {
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": strings.request_auth},
+        "accessory": {
+            "type": "button",
+            "style": "primary",
+            "text": {"type": "plain_text", "text": strings.request_auth_button, "emoji": True},
+            "value": "unused",
+            "action_id": "requesting_auth",
+            "url": "",
+        },
+    }
+]
+request_auth_step_2 = [
+    {
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": strings.request_auth},
+        "accessory": {
+            "type": "button",
+            "style": "primary",
+            "text": {
+                "type": "plain_text",
+                "text": strings.request_auth_button_step_2,
+                "emoji": True,
+            },
+            "value": "unused",
+            "action_id": "refresh_home",
+        },
+    }
+]
