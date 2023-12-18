@@ -13,7 +13,9 @@ from slack_sdk.web.slack_response import SlackResponse  # for typing
 from . import slackUtils
 
 
-def generate_auth_request_url(id: str, config: dict, name: str="", app=None, client=None):
+def generate_auth_request_url(
+    id: str, config: dict, name: str = "", app=None, client=None
+):
     if not app and not client:
         raise ValueError("Either app or client must be specified")
     if app:
@@ -46,7 +48,9 @@ def generate_auth_request_url(id: str, config: dict, name: str="", app=None, cli
     if config["auth_server"].get("proxied_url"):
         domain = config["auth_server"]["proxied_url"]
     else:
-        domain = f'http://{config["auth_server"]["host"]}:{config["auth_server"]["port"]}'
+        domain = (
+            f'http://{config["auth_server"]["host"]}:{config["auth_server"]["port"]}'
+        )
 
     return f"{domain}/api/v1/authRequest/{encrypted_auth_request.decode()}"
 
@@ -70,8 +74,9 @@ def submit_auth_request(auth_request, config):
         if "slack://" in e.args[0]:
             pass
         else:
-            raise Exception("Server returned an invalid schema that was not a slack deep link")
-
+            raise Exception(
+                "Server returned an invalid schema that was not a slack deep link"
+            )
 
     # decode the auth_request
     crypt = Fernet(config["auth_server"]["request_key"].encode())
@@ -95,15 +100,19 @@ def check_auth(id, config) -> str | Literal[False]:
         return auths[id]["name"]
     return False
 
+
 def check_server(config):
     # query the root endpoint
     try:
-        r = requests.get(url=f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/")
+        r = requests.get(
+            url=f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/"
+        )
         if r.status_code != 200:
             return False
     except requests.exceptions.ConnectionError:
         return False
     return True
+
 
 def validate_config(config):
     if not config.get("auth_server"):
@@ -115,20 +124,22 @@ def validate_config(config):
     if not config["auth_server"].get("query_token"):
         config["auth_server"]["query_token"] = Fernet.generate_key().decode()
         logging.warning("Query token not found, generating a new one")
-        
+
         # Save the config
         with open("config.json", "w") as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
     if not config["auth_server"].get("request_key"):
         config["auth_server"]["request_key"] = Fernet.generate_key().decode()
         logging.warning("Request key not found, generating a new one")
-        
+
         # Save the config
         with open("config.json", "w") as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
     return True
 
+
 import subprocess
+
 
 def start_server(config):
     # Check if the server is already running
@@ -137,4 +148,6 @@ def start_server(config):
         return
 
     # Start auth_server.py as its own forked process
-    subprocess.Popen(["python", "auth_server.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.Popen(
+        ["python", "auth_server.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
