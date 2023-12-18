@@ -298,12 +298,20 @@ def user_off_requesting_auth(ack, body, logger):
         # Update the app home with a refresh button
         slackUtils.updateHome(user=user, client=app.client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members, auth_step=2)
 
+# Validate auth server config
+if not auth.validate_config(config=config):
+    logging.critical("Auth server config is invalid, exiting...")
+    sys.exit(1)
+    
+# Reload the config in case it was changed
+with open("config.json") as config_file:
+    config = json.load(config_file)
+    
+# Start the auth server
+logging.info("Starting auth server...")
 
-# Test if the auth server is up first before fetching data
-while not auth.check_server(config=config):
-    logging.warning("Auth server is not up, waiting 5 seconds...")
-    time.sleep(5)
-
+# Launch auth_server.py as a forked subprocess
+auth.start_server(config=config)
 
 # Get all linked users from TidyHQ
 
@@ -325,9 +333,6 @@ for contact in contacts:
             if contact["status"] != "expired":
                 current_members[field["value"]] = contact
 
-authed_slack_users.pop("UC6T4U150")
-current_members.pop("UC6T4U150")
-
 logging.debug(
     f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts"
 )
@@ -336,6 +341,12 @@ logging.debug(f"Found {len(current_members)} current members from associated acc
 # Get our user ID
 info = app.client.auth_test()
 logging.debug(f'Connected as @{info["user"]} to {info["team"]}')
+
+# Check if the auth server came up while we were getting data
+while not auth.check_server(config=config):
+    logging.warning("Auth server is not up, waiting 5 seconds...")
+    time.sleep(5)
+logging.info("Auth server is running")
 
 
 if __name__ == "__main__":

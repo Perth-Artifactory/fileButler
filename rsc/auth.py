@@ -3,6 +3,7 @@ import json
 import time
 from pprint import pprint
 from typing import Literal
+import logging
 
 import requests
 from cryptography.fernet import Fernet
@@ -96,7 +97,44 @@ def check_auth(id, config) -> str | Literal[False]:
 
 def check_server(config):
     # query the root endpoint
-    r = requests.get(url=f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/")
-    if r.status_code != 200:
+    try:
+        r = requests.get(url=f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/")
+        if r.status_code != 200:
+            return False
+    except requests.exceptions.ConnectionError:
         return False
     return True
+
+def validate_config(config):
+    if not config.get("auth_server"):
+        return False
+    if not config["auth_server"].get("host"):
+        return False
+    if not config["auth_server"].get("port"):
+        return False
+    if not config["auth_server"].get("query_token"):
+        config["auth_server"]["query_token"] = Fernet.generate_key().decode()
+        logging.warning("Query token not found, generating a new one")
+        
+        # Save the config
+        with open("config.json", "w") as f:
+            json.dump(config, f)
+    if not config["auth_server"].get("request_key"):
+        config["auth_server"]["request_key"] = Fernet.generate_key().decode()
+        logging.warning("Request key not found, generating a new one")
+        
+        # Save the config
+        with open("config.json", "w") as f:
+            json.dump(config, f)
+    return True
+
+import subprocess
+
+def start_server(config):
+    # Check if the server is already running
+    if check_server(config):
+        logging.warning("Auth server is already running")
+        return
+
+    # Start auth_server.py as its own forked process
+    subprocess.Popen(["python", "auth_server.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

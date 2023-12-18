@@ -86,12 +86,17 @@ def request_auth(en_request):
     return redirect_page(link=deep_link)
 
 if __name__ == "__main__":
+    logging.info("Starting auth server")
+    
     # Set up decryption
     crypt = Fernet(config["auth_server"]["request_key"].encode())
     
-    # Load existing auth list
-    with open("temp_auths.json", "r") as f:
-        auth_list: list = json.load(f)
+    # Check if we have an existing auth list
+    try:
+        with open("temp_auths.json", "r") as f:
+            auth_list: dict = json.load(f)
+    except FileNotFoundError:
+        auth_list = {}
     
     purge_expired()
     
