@@ -101,7 +101,7 @@ def handle_message_events(body, logger, event, client):  # type: ignore
         filename = formatters.clean_filename(file["name"])
 
         # Check if the file is a duplicate
-        if os.path.exists(f"{entitlements["folder"]}/{filename}"):
+        if os.path.exists(f'{entitlements["folder"]}/{filename}'):
             slackUtils.send(
                 app=app,
                 event=event,
