@@ -2,21 +2,36 @@
     "slack": {
         "bot_token": "xoxb",
         "app_token": "xapp",
-        "notification_channel": "C"
+        "notification_channel": "CHANNEL_ID",
+        "unlimited_groups": [
+            "GROUP_ID"
+        ]
     },
     "tidyhq": {
-        "token": "ABC",
+        "token": "TIDYHQ_TOKEN",
         "ids": {
-            "slack": "DEF"
+            "slack": "CUSTOM_FIELD_ID"
         },
         "signup_url": "https://example.com"
     },
+    "virustotal": {
+        "api_key": "VIRUSTOTAL_API_KEY"
+    },
     "debug": true,
     "download": {
-        "folder_name": "#BUTLER",
-        "root_directory": "./Member Work",
+        "folder_name": "FOLDER",
+        "root_directory": "./ROOT_FOLDER",
         "max_file_size": 100000000,
         "max_folder_size": 1000000000,
-        "max_folder_files": 100
+        "max_folder_files": 100,
+        "member_multiplier": 2
+    },
+    "auth_server": {
+        "host": "localhost",
+        "port": 34537,
+        "proxied_url": "",
+        "request_key": "",
+        "query_token": "",
+        "expiry": 86400
     }
 }
