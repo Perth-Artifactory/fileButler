@@ -67,8 +67,8 @@ def handle_message_events(body, logger, event, client):  # type: ignore
     entitlements = util.check_entitlements(
         user=user,
         config=config,
-        authed_slack_users=authed_slack_users,
-        current_members=current_members,
+        authed_slack_users_LOCAL=authed_slack_users,
+        current_members_LOCAL=current_members,
         contacts=contacts,
         client=client,
     )
@@ -133,12 +133,14 @@ def handle_message_events(body, logger, event, client):  # type: ignore
                     file=filename,
                     size=formatters.file_size(file["size"]),
                     max_file_size=formatters.file_size(
-                        num=1000000000
-                        if config["download"]["max_file_size"]
-                        * entitlements["multiplier"]
-                        > 1000000000
-                        else config["download"]["max_file_size"]
-                        * entitlements["multiplier"]
+                        num=(
+                            1000000000
+                            if config["download"]["max_file_size"]
+                            * entitlements["multiplier"]
+                            > 1000000000
+                            else config["download"]["max_file_size"]
+                            * entitlements["multiplier"]
+                        )
                     ),
                 ),
             )
@@ -268,8 +270,8 @@ def delete_folder(ack, body, client):
     entitlements = util.check_entitlements(
         user=user,
         config=config,
-        authed_slack_users=authed_slack_users,
-        current_members=current_members,
+        authed_slack_users_LOCAL=authed_slack_users,
+        current_members_LOCAL=current_members,
         contacts=contacts,
         client=client,
     )
@@ -340,7 +342,6 @@ if not auth.validate_config(config=config):
     logging.critical("Auth server config is invalid, exiting...")
     sys.exit(1)
 
-# Reload the config in case it was changed
 with open("config.json") as config_file:
     config = json.load(config_file)
 
@@ -361,19 +362,8 @@ contacts: list[dict[str, Any]] = requests.get(
 
 logger.debug(f"Received {len(contacts)} contacts")
 
-authed_slack_users = {}
-current_members = {}
-for contact in contacts:
-    for field in contact["custom_fields"]:
-        if field["id"] == config["tidyhq"]["ids"]["slack"]:
-            authed_slack_users[field["value"]] = contact
-            if contact["status"] != "expired":
-                current_members[field["value"]] = contact
-
-logger.debug(
-    f"Found {len(authed_slack_users)} TidyHQ contacts with associated Slack accounts"
-)
-logger.debug(f"Found {len(current_members)} current members from associated accounts")
+# Get info from TidyHQ
+authed_slack_users, current_members = util.get_tidy_info(config=config)
 
 # Get our user ID
 info = app.client.auth_test()
