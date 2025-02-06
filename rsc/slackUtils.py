@@ -17,7 +17,7 @@ def send(
         raise Exception("Global Slack client not connected")
 
     event = dict(event)
-    if type(event["user"]) != str:
+    if not isinstance(event["user"], str):
         user = event["user"]["id"]
     else:
         user = event["user"]
@@ -30,8 +30,7 @@ def send(
     if channel:
         event["channel"] = channel
 
-    # iF
-    if not event.get("ts", False) and not channel:
+    if (not event.get("ts", False) and not channel) or dm:
         # Open a DM with the user
         response = app.client.conversations_open(users=user)
         channel = response.data["channel"]["id"]
@@ -73,7 +72,7 @@ def check_unlimited(user, config, app=None, client=None):
     return False
 
 
-def updateHome(
+def update_home(
     user: str,
     client: WebClient,
     config,

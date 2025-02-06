@@ -4,11 +4,16 @@
         "authed",
         "auths",
         "Fernet",
+        "levelname",
         "signup",
         "tidyhq",
         "usergroups",
         "virustotal",
         "xapp",
         "xoxb"
-    ]
+    ],
+    "sonarlint.connectedMode.project": {
+        "connectionId": "https-sq-artifactory-org-au",
+        "projectKey": "Perth-Artifactory_fileButler_41c3789e-f99a-4267-9cc1-ce6ab382f4b3"
+    }
 }

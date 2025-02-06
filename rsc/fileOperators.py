@@ -14,7 +14,6 @@ def check_folder_eligibility(
     contact: dict,
     config=None,
     current_members: dict | Literal[None] = None,
-    authed_slack_users: dict | Literal[None] = None,
     user: str = "",
     multiplier=0,
 ) -> bool:
@@ -51,21 +50,21 @@ def get_current_files(
     folder=None, user: str = "", config={}, contacts=None, authed_slack_users=None
 ):
     if folder:
-        dir = folder
+        directory = folder
     elif user and config and contacts and authed_slack_users:
-        dir = f'{config["download"]["root_directory"]}/{formatters.folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
+        directory = f'{config["download"]["root_directory"]}/{formatters.folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
     else:
         raise Exception(
             "Must provide either folder or user, config, contacts and authed_slack_users"
         )
 
     files = []
-    for file in os.listdir(dir):
+    for file in os.listdir(directory):
         # get the size of each file
-        size = os.path.getsize(f"{dir}/{file}")
+        size = os.path.getsize(f"{directory}/{file}")
 
         # get the creation time of each file
-        ctime = os.path.getctime(f"{dir}/{file}")
+        ctime = os.path.getctime(f"{directory}/{file}")
 
         files.append((file, size, ctime))
     return files
@@ -84,15 +83,15 @@ def get_current_folder_size(
     folder=None, user: str = "", config={}, contacts=None, authed_slack_users=None
 ):
     if folder:
-        dir = folder
+        directory = folder
     elif user and config and contacts and authed_slack_users:
-        dir = f'{config["download"]["root_directory"]}/{formatters.folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
+        directory = f'{config["download"]["root_directory"]}/{formatters.folder_name(id=user, config=config, contacts=contacts, authed_slack_users=authed_slack_users)}/{config["download"]["folder_name"]}/'
     else:
         raise Exception(
             "Must provide either folder or user, config, contacts and authed_slack_users"
         )
 
     folder_size = 0
-    for file in os.listdir(dir):
-        folder_size += os.path.getsize(f"{dir}/{file}")
+    for file in os.listdir(directory):
+        folder_size += os.path.getsize(f"{directory}/{file}")
     return folder_size

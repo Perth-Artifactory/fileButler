@@ -38,7 +38,7 @@ def folder_name(
     elif contact_object:
         contact: dict = contact_object
 
-    if not contact or type(contact) != dict:
+    if not contact or not isinstance(contact, dict):
         raise Exception("Contact not found")
 
     # Get the folder name from the contact object
@@ -70,8 +70,8 @@ def home(
     entitlements = util.check_entitlements(
         user=user,
         config=config,
-        authed_slack_users=authed_slack_users,
-        current_members=current_members,
+        current_members_local=current_members,
+        authed_slack_users_local=authed_slack_users,
         contacts=contacts,
         client=client,
     )
@@ -125,7 +125,7 @@ def home(
         max_folder_size=file_size(
             config["download"]["max_folder_size"] * entitlements["multiplier"]
         ),
-        folder_size_bar=createProgressBar(
+        folder_size_bar=create_progress_bar(
             current=folder_size,
             total=config["download"]["max_folder_size"] * entitlements["multiplier"],
             segments=7,
@@ -133,7 +133,7 @@ def home(
         current_folder_items=len(folder_items),
         max_folder_files=config["download"]["max_folder_files"]
         * entitlements["multiplier"],
-        folder_items_bar=createProgressBar(
+        folder_items_bar=create_progress_bar(
             current=len(folder_items),
             total=config["download"]["max_folder_files"] * entitlements["multiplier"],
             segments=7,
@@ -172,19 +172,19 @@ def home(
     return block_list
 
 
-def createProgressBar(current: int | float, total: int, segments: int = 7) -> str:
+def create_progress_bar(current: int | float, total: int, segments: int = 7) -> str:
     segments = segments * 4 + 2
     if current == 0:
         filled = 0
     else:
         percent = 100 * float(current) / float(total)
-        percentagePerSegment = 100.0 / segments
-        if percent < percentagePerSegment:
+        percentage_per_segment = 100.0 / segments
+        if percent < percentage_per_segment:
             filled = 1
-        elif 100 - percent < percentagePerSegment:
+        elif 100 - percent < percentage_per_segment:
             filled = segments
         else:
-            filled = round(percent / percentagePerSegment)
+            filled = round(percent / percentage_per_segment)
     s = "g" * filled + "w" * (segments - filled)
     final_s = ""
 

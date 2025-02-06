@@ -74,12 +74,10 @@ def submit_auth_request(auth_request, config):
             f"http://{config['auth_server']['host']}:{config['auth_server']['port']}/api/v1/authRequest/{auth_request}",
         )
         if r.status_code != 200:
-            raise Exception("Server returned an error")
+            raise requests.exceptions.HTTPError("Server returned an error")
     except requests.exceptions.InvalidSchema as e:
-        if "slack://" in e.args[0]:
-            pass
-        else:
-            raise Exception(
+        if "slack://" not in e.args[0]:
+            raise requests.exceptions.InvalidSchema(
                 "Server returned an invalid schema that was not a slack deep link"
             )
 

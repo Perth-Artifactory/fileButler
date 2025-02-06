@@ -13,14 +13,14 @@ from waitress import serve
 def purge_expired():
     global auth_list
     popping = []
-    for id in auth_list:
+    for auth_id in auth_list:
         if (
-            auth_list[id]["from"] + config["auth_server"]["expiry"]
+            auth_list[auth_id]["from"] + config["auth_server"]["expiry"]
             > datetime.datetime.now().timestamp()
         ):
-            popping.append
-    for id in popping:
-        auth_list.pop(id)
+            popping.append(auth_id)
+    for auth_id in popping:
+        auth_list.pop(auth_id)
     logger.debug(
         f"Got {len(auth_list)} auths from file and purged {len(popping)} expired auths"
     )
@@ -82,17 +82,17 @@ def return_auth_list():
 
 @app.route("/api/v1/authRequest/<en_request>", methods=["GET"])  # type: ignore
 def request_auth(en_request):
-    authRequest = en_request.encode()
+    auth_request = en_request.encode()
 
     global auth_list
 
     # Decrypt the request and convert it from json to a dict
-    request_d = json.loads(crypt.decrypt(authRequest).decode())
+    request_d = json.loads(crypt.decrypt(auth_request).decode())
 
     # Check if the request is valid
     if not request_d["id"] or not request_d["name"] or not request_d["from"]:
         logger.debug("Parameter missing from request")
-        return flask.jsonify({"error": "authRequest is malformed"}), 400
+        return flask.jsonify({"error": "auth_request is malformed"}), 400
 
     # Check if the requested ID is already on the list
     if request_d["id"] in auth_list:

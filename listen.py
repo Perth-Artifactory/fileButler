@@ -44,7 +44,7 @@ app = App(token=config["slack"]["bot_token"], logger=slack_logger)
 @app.event("app_home_opened")  # type: ignore
 def app_home_opened(event: dict[str, Any], client: WebClient, ack) -> None:
     ack()
-    slackUtils.updateHome(user=event["user"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
+    slackUtils.update_home(user=event["user"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
 
 
 @app.event("message")
@@ -67,8 +67,8 @@ def handle_message_events(body, logger, event, client):  # type: ignore
     entitlements = util.check_entitlements(
         user=user,
         config=config,
-        authed_slack_users_LOCAL=authed_slack_users,
-        current_members_LOCAL=current_members,
+        authed_slack_users_local=authed_slack_users,
+        current_members_local=current_members,
         contacts=contacts,
         client=client,
     )
@@ -249,7 +249,7 @@ def handle_message_events(body, logger, event, client):  # type: ignore
         )
 
         # Update the app home
-        slackUtils.updateHome(
+        slackUtils.update_home(
             user=user,
             client=app.client,
             config=config,
@@ -270,8 +270,8 @@ def delete_folder(ack, body, client):
     entitlements = util.check_entitlements(
         user=user,
         config=config,
-        authed_slack_users_LOCAL=authed_slack_users,
-        current_members_LOCAL=current_members,
+        authed_slack_users_local=authed_slack_users,
+        current_members_local=current_members,
         contacts=contacts,
         client=client,
     )
@@ -289,7 +289,7 @@ def delete_folder(ack, body, client):
         )
 
         # Update the app home
-        slackUtils.updateHome(
+        slackUtils.update_home(
             user=user,
             client=app.client,
             config=config,
@@ -302,7 +302,7 @@ def delete_folder(ack, body, client):
 @app.action("refresh_home")
 def refresh_home(ack, body, client):
     ack()
-    slackUtils.updateHome(user=body["user"]["id"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
+    slackUtils.update_home(user=body["user"]["id"], client=client, config=config, authed_slack_users=authed_slack_users, contacts=contacts, current_members=current_members)  # type: ignore
 
 
 @app.action("requesting_auth")
@@ -316,7 +316,7 @@ def user_off_requesting_auth(ack, body, logger):
         count += 1
     # Did the user manage to authenticate in time?
     if auth.check_auth(id=user, config=config):
-        slackUtils.updateHome(
+        slackUtils.update_home(
             user=user,
             client=app.client,
             config=config,
@@ -326,7 +326,7 @@ def user_off_requesting_auth(ack, body, logger):
         )
     else:
         # Update the app home with a refresh button
-        slackUtils.updateHome(
+        slackUtils.update_home(
             user=user,
             client=app.client,
             config=config,
